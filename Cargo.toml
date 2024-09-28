@@ -1,0 +1,10 @@
+[package]
+name = "rusty_pus_topic_manipulator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.28.1"
+directories = "5.0.1"
+rand = "0.8.5"
+clearscreen = "3.0.0"

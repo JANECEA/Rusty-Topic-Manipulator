@@ -81,17 +81,15 @@ impl<T> UndoRedoHandler<T> {
     }
 
     #[allow(dead_code)]
-    pub fn remove_node(&mut self, go_to_previous: bool) {
+    pub fn remove_node(&mut self, go_to_previous: bool) -> Result<(), &'static str> {
         if self.is_head() {
-            panic!("Invalid operation: trying to remove head.")
+            return Err("Invalid operation: trying to remove head.");
         }
         if self.is_tail() {
-            panic!("Invalid operation: trying to remove tail.")
+            return Err("Invalid operation: trying to remove tail.");
         }
-
         self.list.remove(self.current_index);
         self.end_index -= 1;
-
         if self.current_index > self.end_index {
             self.current_index = self.end_index;
             self.at_end = true;
@@ -99,5 +97,6 @@ impl<T> UndoRedoHandler<T> {
         if go_to_previous {
             self.move_to_previous();
         }
+        Ok(())
     }
 }

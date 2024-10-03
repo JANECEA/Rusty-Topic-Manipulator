@@ -12,6 +12,9 @@ mod topic_handler;
 mod undo_redo_handler;
 use topic_handler::{Command, CommandResult, TopicHandler};
 
+const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
+const SETTINGS_FILE_NAME: &str = "settings.json";
+
 pub fn show_error(message: &str) {
     eprintln!("{}", message.red())
 }
@@ -28,9 +31,10 @@ fn init_documents_dir() -> PathBuf {
 
 fn main() {
     let documents_dir: PathBuf = init_documents_dir();
-    let topics_file_dir: PathBuf = documents_dir.join("MeetingTopics/");
-    let topics_file_path: PathBuf = documents_dir.join("MeetingTopics/topics.happypus");
-    let topics_file_old_path: PathBuf = documents_dir.join("MeetingTopics/topics.happypus.old");
+    let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
+    let topics_file_path: PathBuf = documents_dir.join("RustyTopicManipulator/topics.happypus");
+    let topics_file_old_path: PathBuf =
+        documents_dir.join("RustyTopicManipulator/topics.happypus.old");
 
     let mut topics: TopicHandler =
         TopicHandler::new(&read_list(&topics_file_dir, &topics_file_path).unwrap());
@@ -46,7 +50,7 @@ fn run_program(topics: &mut TopicHandler) {
         }
         let mut line: String = String::new();
         if io::stdin().read_line(&mut line).is_ok() {
-            let trimmed_line = line.trim();
+            let trimmed_line: &str = line.trim();
             if trimmed_line.is_empty() {
                 continue;
             }
@@ -70,12 +74,9 @@ fn pass_command(parsed_line: &ParsedLine, topics: &mut TopicHandler) -> CommandR
             Command::Add => topics.add_topics(&parsed_line.args),
             Command::Pick => {
                 let mut result: CommandResult = topics.pick_random();
-                if result.ok() {
+                if let Some(topic) = topics.get_chosen_topic() {
                     print!("{}", "Chosen topic: ".blue());
-                    println!(
-                        "{}",
-                        topics.get_chosen_topic().as_deref().unwrap_or("error")
-                    );
+                    println!("{}", topic);
                     print!("{}", "Remove topic [y/N]: ".green());
                     if confirm() {
                         result = topics.remove_chosen_topic();
@@ -128,8 +129,10 @@ fn render(topics: &TopicHandler) {
         Command::ALL_COMMANDS.join(", ").green()
     );
     println!();
-    for _ in 0..terminal::size().unwrap().0 {
-        print!("{}", '='.dark_grey());
+    if let Ok((width, _height)) = terminal::size() {
+        for _ in 0..width {
+            print!("{}", '='.dark_grey());
+        }
     }
     println!("\n");
 }
@@ -194,6 +197,10 @@ fn check_files_exist(topics_file_dir: &PathBuf, topics_file_path: &PathBuf) {
     if !topics_file_path.exists() {
         fs::File::create(topics_file_path).expect("Failed to create file");
     }
+}
+
+fn load_settings(settings_path: &str) -> String {
+    fs::read_to_string(settings_path).unwrap()
 }
 
 fn read_list(topics_file_dir: &PathBuf, topics_file_path: &PathBuf) -> io::Result<Vec<String>> {

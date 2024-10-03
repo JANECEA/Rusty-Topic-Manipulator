@@ -402,7 +402,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusty_pus_topic_manipulator"
+name = "rusty_topic_manipulator"
 version = "0.1.0"
 dependencies = [
  "clearscreen",

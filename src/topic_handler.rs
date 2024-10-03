@@ -66,8 +66,7 @@ pub struct TopicHandler {
     state: Vec<String>,
     has_changed: bool,
     can_continue: bool,
-    chosen_topic: Option<String>,
-    chosen_topic_index: Option<usize>,
+    chosen_topic: Option<(String, usize)>,
     rng: ThreadRng,
 }
 
@@ -82,7 +81,6 @@ impl TopicHandler {
             rng: rand::thread_rng(),
             topic_history: undo_redo_handler,
             chosen_topic: None,
-            chosen_topic_index: None,
         }
     }
 
@@ -100,8 +98,12 @@ impl TopicHandler {
         self.state.as_slice()
     }
 
-    pub fn get_chosen_topic(&self) -> &Option<String> {
-        &self.chosen_topic
+    pub fn get_chosen_topic(&self) -> Option<&String> {
+        if let Some((ref topic, _index)) = self.chosen_topic {
+            Some(topic)
+        } else {
+            None
+        }
     }
 
     pub fn exit(&mut self) -> CommandResult {
@@ -156,20 +158,22 @@ impl TopicHandler {
             return CommandResult::fail("Not enough topics");
         }
         let index: usize = self.rng.gen_range(1..=self.state.len());
-        self.chosen_topic = Some(self.state[index - 1].clone());
-        self.chosen_topic_index = Some(index - 1);
+        self.chosen_topic = Some((self.state[index - 1].clone(), index - 1));
         CommandResult::success()
     }
 
     pub fn remove_chosen_topic(&mut self) -> CommandResult {
-        let index: usize = self.chosen_topic_index.unwrap();
-        if index == 0 || index > self.state.len() {
-            return CommandResult::fail(&format!("Wrong index: {}", index));
+        if let Some((_topic, index)) = &self.chosen_topic {
+            if *index == 0 || *index > self.state.len() {
+                return CommandResult::fail(&format!("Wrong index: {}", index));
+            }
+            self.state.remove(index - 1);
+            self.topic_history.add_new_node(self.state.clone());
+            self.has_changed = true;
+            return CommandResult::success();
+        } else {
+            return CommandResult::fail("No topic has been chosen");
         }
-        self.state.remove(index - 1);
-        self.topic_history.add_new_node(self.state.clone());
-        self.has_changed = true;
-        CommandResult::success()
     }
 
     pub fn undo(&mut self) -> CommandResult {

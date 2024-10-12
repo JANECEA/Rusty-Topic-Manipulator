@@ -164,10 +164,10 @@ impl TopicHandler {
 
     pub fn remove_chosen_topic(&mut self) -> CommandResult {
         if let Some((_topic, index)) = &self.chosen_topic {
-            if *index == 0 || *index > self.state.len() {
+            if *index >= self.state.len() {
                 return CommandResult::fail(&format!("Wrong index: {}", index));
             }
-            self.state.remove(index - 1);
+            self.state.remove(index.clone());
             self.topic_history.add_new_node(self.state.clone());
             self.has_changed = true;
             return CommandResult::success();
@@ -177,24 +177,28 @@ impl TopicHandler {
     }
 
     pub fn undo(&mut self) -> CommandResult {
-        if let Some(previous_state) = self.topic_history.get_previous() {
-            self.state = previous_state.clone();
-            self.topic_history.move_to_previous();
-            self.has_changed = true;
-            CommandResult::success()
-        } else {
-            CommandResult::fail("Already at the newest change")
+        if let Some(error_message) = self.topic_history.move_to_previous().err() {
+            return CommandResult::fail(error_message);
         }
-    }
-
-    pub fn redo(&mut self) -> CommandResult {
-        if let Some(next_state) = self.topic_history.get_next() {
-            self.state = next_state.clone();
-            self.topic_history.move_to_next();
+        if let Some(state) = self.topic_history.get_current() {
+            self.state = state.clone();
             self.has_changed = true;
             CommandResult::success()
         } else {
             CommandResult::fail("Already at the oldest change")
+        }
+    }
+
+    pub fn redo(&mut self) -> CommandResult {
+        if let Some(error_message) = self.topic_history.move_to_next().err() {
+            return CommandResult::fail(error_message);
+        }
+        if let Some(state) = self.topic_history.get_current() {
+            self.state = state.clone();
+            self.has_changed = true;
+            CommandResult::success()
+        } else {
+            CommandResult::fail("Already at the newest change")
         }
     }
 }

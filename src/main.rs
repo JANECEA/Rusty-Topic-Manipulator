@@ -72,18 +72,7 @@ fn pass_command(parsed_line: &ParsedLine, topics: &mut TopicHandler) -> CommandR
     if let Some(command) = Command::from_str(&parsed_line.command) {
         match command {
             Command::Add => topics.add_topics(&parsed_line.args),
-            Command::Pick => {
-                let mut result: CommandResult = topics.pick_random();
-                if let Some(topic) = topics.get_chosen_topic() {
-                    print!("{}", "Chosen topic: ".blue());
-                    println!("{}", topic);
-                    print!("{}", "Remove topic [y/N]: ".green());
-                    if confirm() {
-                        result = topics.remove_chosen_topic();
-                    }
-                }
-                result
-            }
+            Command::Pick => pick_prompt(topics),
             Command::Remove => topics.remove_topics(&parsed_line.args),
             Command::Undo => topics.undo(),
             Command::Redo => topics.redo(),
@@ -92,6 +81,19 @@ fn pass_command(parsed_line: &ParsedLine, topics: &mut TopicHandler) -> CommandR
     } else {
         CommandResult::fail(&format!("Unknown command: {}", &parsed_line.command))
     }
+}
+
+fn pick_prompt(topics: &mut TopicHandler) -> CommandResult {
+    let mut result: CommandResult = topics.pick_random();
+    if let Some(topic) = topics.get_chosen_topic() {
+        print!("{}", "Chosen topic: ".blue());
+        println!("{}", topic);
+        print!("{}", "Remove topic [y/N]: ".green());
+        if confirm() {
+            result = topics.remove_chosen_topic();
+        }
+    }
+    result
 }
 
 fn confirm() -> bool {

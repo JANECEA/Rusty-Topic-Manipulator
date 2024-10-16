@@ -27,7 +27,7 @@ impl Command {
     }
 
     #[allow(dead_code)]
-    pub fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &'static str {
         Command::ALL_COMMANDS[*self as usize]
     }
 }
@@ -135,7 +135,7 @@ impl TopicHandler {
                 new_topics.push(topic.clone());
             }
         }
-        self.state = new_topics.clone();
+        self.state.clone_from(&new_topics);
         self.topic_history.add_new_node(new_topics);
         self.has_changed = true;
         CommandResult::success()
@@ -167,12 +167,12 @@ impl TopicHandler {
             if *index >= self.state.len() {
                 return CommandResult::fail(&format!("Wrong index: {}", index));
             }
-            self.state.remove(index.clone());
+            self.state.remove(*index);
             self.topic_history.add_new_node(self.state.clone());
             self.has_changed = true;
-            return CommandResult::success();
+            CommandResult::success()
         } else {
-            return CommandResult::fail("No topic has been chosen");
+            CommandResult::fail("No topic has been chosen")
         }
     }
 
@@ -181,7 +181,7 @@ impl TopicHandler {
             return CommandResult::fail(error_message);
         }
         if let Some(state) = self.topic_history.get_current() {
-            self.state = state.clone();
+            self.state.clone_from(state);
             self.has_changed = true;
             CommandResult::success()
         } else {
@@ -194,7 +194,7 @@ impl TopicHandler {
             return CommandResult::fail(error_message);
         }
         if let Some(state) = self.topic_history.get_current() {
-            self.state = state.clone();
+            self.state.clone_from(state);
             self.has_changed = true;
             CommandResult::success()
         } else {

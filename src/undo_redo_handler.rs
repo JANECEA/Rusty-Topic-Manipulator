@@ -103,10 +103,8 @@ impl<T> UndoRedoHandler<T> {
             self.current_index = self.end_index;
             self.at_end = true;
         }
-        if go_to_previous {
-            if !self.move_to_previous().is_ok() {
-                return Err("Unexpected error occured.");
-            }
+        if go_to_previous && self.move_to_previous().is_err() {
+            return Err("Unexpected error occured.");
         }
         Ok(())
     }

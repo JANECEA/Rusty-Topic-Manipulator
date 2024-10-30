@@ -49,22 +49,17 @@ fn run_program(topics: &mut TopicHandler) {
             render(topics);
         }
         let mut line: String = String::new();
-        if io::stdin().read_line(&mut line).is_ok() {
-            let trimmed_line: &str = line.trim();
-            if trimmed_line.is_empty() {
-                continue;
-            }
-            let result: CommandResult = pass_command(&parse_input_line(trimmed_line), topics);
-            if !result.ok() {
-                show_error(
-                    result
-                        .error_message()
-                        .as_deref()
-                        .unwrap_or("An unknown error occurred"),
-                );
-            }
-            can_continue = topics.can_continue();
+        if io::stdin().read_line(&mut line).is_err() {
+            continue;
         }
+        let trimmed_line: &str = line.trim();
+        if trimmed_line.is_empty() {
+            continue;
+        }
+        if let CommandResult::Fail(result) = pass_command(&parse_input_line(trimmed_line), topics) {
+            show_error(&result);
+        }
+        can_continue = topics.can_continue();
     }
 }
 
@@ -79,7 +74,7 @@ fn pass_command(parsed_line: &ParsedLine, topics: &mut TopicHandler) -> CommandR
             Command::Exit => topics.exit(),
         }
     } else {
-        CommandResult::fail(&format!("Unknown command: {}", &parsed_line.command))
+        CommandResult::Fail(format!("Unknown command: {}", &parsed_line.command))
     }
 }
 

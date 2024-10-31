@@ -15,17 +15,54 @@ use topic_handler::{Command, CommandResult, TopicHandler};
 const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 
-pub fn show_error(message: &str) {
-    eprintln!("{}", message.red())
+struct ParsedLine {
+    command: String,
+    args: Vec<String>,
+}
+
+impl ParsedLine {
+    fn parse_line(line: &str) -> Self {
+        let index: usize;
+        match line.find(' ') {
+            Some(i) => index = i,
+            None => {
+                return ParsedLine {
+                    command: line.to_string(),
+                    args: vec![],
+                }
+            }
+        }
+        let (command, rest): (&str, &str) = line.split_at(index);
+        let mut args_list: Vec<String> = vec![];
+        let mut current_word: String = String::new();
+        let mut in_quotes: bool = false;
+
+        for ch in rest.trim().chars() {
+            match ch {
+                '"' => in_quotes = !in_quotes,
+                ' ' if !in_quotes => {
+                    if !current_word.is_empty() {
+                        args_list.push(current_word.clone());
+                        current_word.clear();
+                    }
+                }
+                _ => current_word.push(ch),
+            }
+        }
+        args_list.push(current_word.clone());
+        ParsedLine {
+            command: command.to_string(),
+            args: args_list,
+        }
+    }
 }
 
 fn init_documents_dir() -> PathBuf {
-    if let Some(user_dirs) = directories::UserDirs::new() {
-        user_dirs
+    match directories::UserDirs::new() {
+        Some(user_dirs) => user_dirs
             .document_dir()
-            .map_or_else(|| PathBuf::from("/"), PathBuf::from)
-    } else {
-        PathBuf::from("/")
+            .map_or_else(|| PathBuf::from("/"), PathBuf::from),
+        None => PathBuf::from("/"),
     }
 }
 
@@ -43,8 +80,7 @@ fn main() {
 }
 
 fn run_program(topics: &mut TopicHandler) {
-    let mut can_continue: bool = true;
-    while can_continue {
+    loop {
         if topics.should_rerender() {
             render(topics);
         }
@@ -56,10 +92,14 @@ fn run_program(topics: &mut TopicHandler) {
         if trimmed_line.is_empty() {
             continue;
         }
-        if let CommandResult::Fail(result) = pass_command(&parse_input_line(trimmed_line), topics) {
-            show_error(&result);
+        if let CommandResult::Fail(result) =
+            pass_command(&ParsedLine::parse_line(trimmed_line), topics)
+        {
+            print_error(&result);
         }
-        can_continue = topics.can_continue();
+        if !topics.can_continue() {
+            break;
+        }
     }
 }
 
@@ -134,44 +174,8 @@ fn render(topics: &TopicHandler) {
     println!("\n");
 }
 
-struct ParsedLine {
-    command: String,
-    args: Vec<String>,
-}
-
-fn parse_input_line(line: &str) -> ParsedLine {
-    let index: usize;
-    match line.find(' ') {
-        Some(i) => index = i,
-        None => {
-            return ParsedLine {
-                command: line.to_string(),
-                args: vec![],
-            }
-        }
-    }
-    let (command, rest): (&str, &str) = line.split_at(index);
-    let mut args_list: Vec<String> = vec![];
-    let mut current_word: String = String::new();
-    let mut in_quotes: bool = false;
-
-    for ch in rest.trim().chars() {
-        match ch {
-            '"' => in_quotes = !in_quotes,
-            ' ' if !in_quotes => {
-                if !current_word.is_empty() {
-                    args_list.push(current_word.clone());
-                    current_word.clear();
-                }
-            }
-            _ => current_word.push(ch),
-        }
-    }
-    args_list.push(current_word.clone());
-    ParsedLine {
-        command: command.to_string(),
-        args: args_list,
-    }
+pub fn print_error(message: &str) {
+    eprintln!("{}", message.red())
 }
 
 fn write(

@@ -153,11 +153,9 @@ impl TopicHandler {
     }
 
     pub fn undo(&mut self) -> CommandResult {
-        if let Some(error_message) = self.topic_history.move_to_previous().err() {
-            return CommandResult::Fail(error_message.to_string());
-        }
-        if let Some(state) = self.topic_history.get_current() {
+        if let Some(state) = self.topic_history.get_previous() {
             self.state.clone_from(state);
+            self.topic_history.move_to_previous();
             self.has_changed = true;
             CommandResult::Success
         } else {
@@ -166,11 +164,9 @@ impl TopicHandler {
     }
 
     pub fn redo(&mut self) -> CommandResult {
-        if let Some(error_message) = self.topic_history.move_to_next().err() {
-            return CommandResult::Fail(error_message.to_string());
-        }
-        if let Some(state) = self.topic_history.get_current() {
+        if let Some(state) = self.topic_history.get_next() {
             self.state.clone_from(state);
+            self.topic_history.move_to_next();
             self.has_changed = true;
             CommandResult::Success
         } else {

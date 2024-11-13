@@ -36,6 +36,7 @@ impl<T> UndoRedoHandler<T> {
         self.current_index >= self.end_index && self.at_end
     }
 
+    #[allow(dead_code)]
     pub fn get_current(&self) -> Option<&T> {
         if self.at_end {
             return None;
@@ -43,7 +44,6 @@ impl<T> UndoRedoHandler<T> {
         Some(&self.list[self.current_index])
     }
 
-    #[allow(dead_code)]
     pub fn get_previous(&self) -> Option<&T> {
         if self.current_index == 0 {
             return None;
@@ -51,7 +51,6 @@ impl<T> UndoRedoHandler<T> {
         Some(&self.list[self.current_index - 1])
     }
 
-    #[allow(dead_code)]
     pub fn get_next(&self) -> Option<&T> {
         if self.current_index == self.end_index {
             return None;
@@ -59,34 +58,34 @@ impl<T> UndoRedoHandler<T> {
         Some(&self.list[self.current_index + 1])
     }
 
-    pub fn move_to_previous(&mut self) -> Result<(), &'static str> {
+    pub fn move_to_previous(&mut self) -> bool {
         if self.current_index > 0 {
             if !self.at_end {
                 self.current_index -= 1;
             }
             self.at_end = false;
-            return Ok(());
+            return true;
         }
         if self.at_end {
-            return Err("Already at the oldest change");
+            return false;
         }
         self.at_end = true;
-        Ok(())
+        true
     }
 
-    pub fn move_to_next(&mut self) -> Result<(), &'static str> {
+    pub fn move_to_next(&mut self) -> bool {
         if self.current_index < self.end_index {
             if !self.at_end {
                 self.current_index += 1;
             }
             self.at_end = false;
-            return Ok(());
+            return true;
         }
         if self.at_end {
-            return Err("Already at the newest change");
+            return false;
         }
         self.at_end = true;
-        Ok(())
+        true
     }
 
     #[allow(dead_code)]
@@ -103,7 +102,7 @@ impl<T> UndoRedoHandler<T> {
             self.current_index = self.end_index;
             self.at_end = true;
         }
-        if go_to_previous && self.move_to_previous().is_err() {
+        if go_to_previous && !self.move_to_previous() {
             return Err("Unexpected error occured.");
         }
         Ok(())

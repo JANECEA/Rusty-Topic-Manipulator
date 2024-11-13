@@ -1,3 +1,4 @@
+use arboard::{self, Clipboard};
 use crossterm::{
     style::*,
     terminal::{self},
@@ -15,18 +16,18 @@ use topic_handler::{Command, CommandResult, TopicHandler};
 const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 
-struct ParsedLine {
+struct ParsedCommand {
     command: String,
     args: Vec<String>,
 }
 
-impl ParsedLine {
-    fn parse_line(line: &str) -> Self {
+impl ParsedCommand {
+    fn parse_from_line(line: &str) -> Self {
         let index: usize;
         match line.find(' ') {
             Some(i) => index = i,
             None => {
-                return ParsedLine {
+                return ParsedCommand {
                     command: line.to_string(),
                     args: vec![],
                 }
@@ -50,97 +51,133 @@ impl ParsedLine {
             }
         }
         args_list.push(current_word.clone());
-        ParsedLine {
+        Self {
             command: command.to_string(),
             args: args_list,
         }
     }
 }
 
-fn init_documents_dir() -> PathBuf {
-    match directories::UserDirs::new() {
-        Some(user_dirs) => user_dirs
-            .document_dir()
-            .map_or_else(|| PathBuf::from("/"), PathBuf::from),
-        None => PathBuf::from("/"),
+struct FileHandler {
+    topics_file_dir: PathBuf,
+    topics_file_path: PathBuf,
+    settings_file_path: PathBuf,
+    topics_file_old_path: PathBuf,
+}
+
+impl FileHandler {
+    fn new() -> Self {
+        let documents_dir: PathBuf = FileHandler::init_documents_dir();
+        let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
+        let topics_file_path: PathBuf = topics_file_dir.join("topics.happypus");
+        let topics_file_old_path: PathBuf = topics_file_dir.join("topics.happypus.old");
+        let settings_file_path: PathBuf = topics_file_dir.join(SETTINGS_FILE_NAME);
+        Self {
+            topics_file_dir,
+            topics_file_path,
+            topics_file_old_path,
+            settings_file_path,
+        }
+    }
+
+    fn write(&self, topics: &TopicHandler) -> io::Result<()> {
+        let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
+        for line in topics.get_topics() {
+            writeln!(file, "{}", line)?;
+        }
+        Ok(())
+    }
+
+    fn try_write(&self, topics: &TopicHandler) {
+        if let Ok(mut file) = fs::File::create(&self.topics_file_path) {
+            for line in topics.get_topics() {
+                _ = writeln!(file, "{}", line);
+            }
+        }
+    }
+
+    fn overwrite_old(&self) -> io::Result<()> {
+        fs::copy(&self.topics_file_path, &self.topics_file_old_path)?;
+        Ok(())
+    }
+
+    fn check_files_exist(&self) {
+        if !&self.topics_file_dir.exists() {
+            fs::create_dir_all(&self.topics_file_dir).expect("Failed to create directory");
+        }
+        if !&self.topics_file_path.exists() {
+            fs::File::create(&self.topics_file_path).expect("Failed to create file");
+        }
+    }
+
+    fn load_settings(&self) -> String {
+        fs::read_to_string(&self.settings_file_path).unwrap()
+    }
+
+    fn read_list(&self) -> io::Result<Vec<String>> {
+        self.check_files_exist();
+
+        io::BufReader::new(fs::File::open(&self.topics_file_path)?)
+            .lines()
+            .collect()
+    }
+
+    fn init_documents_dir() -> PathBuf {
+        if let Some(user_dirs) = directories::UserDirs::new() {
+            user_dirs
+                .document_dir()
+                .map_or_else(|| PathBuf::from("/"), PathBuf::from)
+        } else {
+            PathBuf::from("/")
+        }
     }
 }
 
-fn main() {
-    let documents_dir: PathBuf = init_documents_dir();
-    let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
-    let topics_file_path: PathBuf = documents_dir.join("RustyTopicManipulator/topics.happypus");
-    let topics_file_old_path: PathBuf =
-        documents_dir.join("RustyTopicManipulator/topics.happypus.old");
-
-    let mut topics: TopicHandler =
-        TopicHandler::new(&read_list(&topics_file_dir, &topics_file_path).unwrap());
-    run_program(&mut topics);
-    write(&topics, &topics_file_path, &topics_file_old_path).unwrap();
+struct ConsoleHandler {
+    clipboard: Option<Clipboard>,
 }
 
-fn run_program(topics: &mut TopicHandler) {
-    loop {
-        if topics.should_rerender() {
-            render(topics);
-        }
-        let mut line: String = String::new();
-        if io::stdin().read_line(&mut line).is_err() {
-            continue;
-        }
-        let trimmed_line: &str = line.trim();
-        if trimmed_line.is_empty() {
-            continue;
-        }
-        if let CommandResult::Fail(result) =
-            pass_command(&ParsedLine::parse_line(trimmed_line), topics)
-        {
-            print_error(&result);
-        }
-        if !topics.can_continue() {
-            break;
+impl ConsoleHandler {
+    fn new() -> Self {
+        Self {
+            clipboard: if let Ok(clipboard) = Clipboard::new() {
+                Some(clipboard)
+            } else {
+                None
+            },
         }
     }
-}
 
-fn pass_command(parsed_line: &ParsedLine, topics: &mut TopicHandler) -> CommandResult {
-    if let Some(command) = Command::from_str(&parsed_line.command) {
-        match command {
-            Command::Add => topics.add_topics(&parsed_line.args),
-            Command::Pick => pick_prompt(topics),
-            Command::Remove => topics.remove_topics(&parsed_line.args),
-            Command::Undo => topics.undo(),
-            Command::Redo => topics.redo(),
-            Command::Exit => topics.exit(),
-        }
-    } else {
-        CommandResult::Fail(format!("Unknown command: {}", &parsed_line.command))
-    }
-}
-
-fn pick_prompt(topics: &mut TopicHandler) -> CommandResult {
-    let mut result: CommandResult = topics.pick_random();
-    if let Some(topic) = topics.get_chosen_topic() {
-        print!("{}", "Chosen topic: ".blue());
-        println!("{}", topic);
-        print!("{}", "Remove topic [y/N]: ".green());
-        if confirm() {
-            result = topics.remove_chosen_topic();
+    fn copy_topic_to_clipboard(&mut self, topic: &str) {
+        if let Some(clipboard) = &mut self.clipboard {
+            _ = clipboard.set_text(topic);
         }
     }
-    result
-}
 
-fn confirm() -> bool {
-    io::stdout().flush().unwrap();
-    let mut input: String = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.starts_with('y')
-}
+    fn pick_prompt(&mut self, topics: &mut TopicHandler) -> CommandResult {
+        let mut result: CommandResult = topics.pick_random();
+        if let Some(topic) = topics.get_chosen_topic() {
+            self.copy_topic_to_clipboard(topic);
+            print!("{}", "Chosen topic: ".blue());
+            println!("{}", topic);
+            print!("{}", "Remove topic [y/N]: ".green());
+            if self.confirm() {
+                result = topics.remove_chosen_topic();
+            }
+        }
+        result
+    }
 
-fn render(topics: &TopicHandler) {
-    clearscreen::clear().unwrap();
-    println!("{}",
+    fn confirm(&self) -> bool {
+        io::stdout().flush().unwrap();
+        let mut input: String = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        input.starts_with('y')
+    }
+
+    fn render(&self, topics: &TopicHandler) {
+        clearscreen::clear().unwrap();
+        println!("{}",
         r"
          |@@@@@@@'                                                               ##^'     '^##
       @@@@@@@@@@@@@@@       ___  ___  ____  ____ ______ __ __  __   ___        #              '#
@@ -156,58 +193,85 @@ fn render(topics: &TopicHandler) {
            @@@@@@                                                              ''#' '-.__.+ '##''
         ".dark_magenta()
     );
-    for (index, topic) in topics.get_topics().iter().enumerate() {
-        println!("{0:>2}. {1}", index + 1, topic);
+        for (index, topic) in topics.get_topics().iter().enumerate() {
+            println!("{0:>2}. {1}", index + 1, topic);
+        }
+        println!();
+        println!(
+            "{} {}",
+            "available commands:".dark_grey(),
+            Command::ALL_COMMANDS.join(", ").green()
+        );
+        println!();
+        if let Ok((width, _height)) = terminal::size() {
+            for _ in 0..width {
+                print!("{}", '='.dark_grey());
+            }
+        }
+        println!("\n");
     }
-    println!();
-    println!(
-        "{} {}",
-        "available commands:".dark_grey(),
-        Command::ALL_COMMANDS.join(", ").green()
-    );
-    println!();
-    if let Ok((width, _height)) = terminal::size() {
-        for _ in 0..width {
-            print!("{}", '='.dark_grey());
+
+    pub fn print_error(&self, message: &str) {
+        eprintln!("{}", message.red())
+    }
+}
+
+fn run_program(
+    topics: &mut TopicHandler,
+    console_handler: &mut ConsoleHandler,
+    file_handler: &FileHandler,
+) {
+    loop {
+        if topics.should_rerender() {
+            file_handler.try_write(topics);
+            console_handler.render(topics);
+        }
+        let mut line: String = String::new();
+        if io::stdin().read_line(&mut line).is_err() {
+            continue;
+        }
+        let trimmed_line: &str = line.trim();
+        if trimmed_line.is_empty() {
+            continue;
+        }
+        if let CommandResult::Fail(result) = pass_command(
+            &ParsedCommand::parse_from_line(trimmed_line),
+            topics,
+            console_handler,
+        ) {
+            console_handler.print_error(&result);
+        }
+        if !topics.can_continue() {
+            break;
         }
     }
-    println!("\n");
 }
 
-pub fn print_error(message: &str) {
-    eprintln!("{}", message.red())
-}
-
-fn write(
-    topics: &TopicHandler,
-    topics_file_path: &PathBuf,
-    topics_file_old_path: &PathBuf,
-) -> io::Result<()> {
-    fs::copy(topics_file_path, topics_file_old_path)?;
-    let mut file: fs::File = fs::File::create(topics_file_path)?;
-    for line in topics.get_topics() {
-        writeln!(file, "{}", line)?;
-    }
-    Ok(())
-}
-
-fn check_files_exist(topics_file_dir: &PathBuf, topics_file_path: &PathBuf) {
-    if !topics_file_dir.exists() {
-        fs::create_dir_all(topics_file_dir).expect("Failed to create directory");
-    }
-    if !topics_file_path.exists() {
-        fs::File::create(topics_file_path).expect("Failed to create file");
+fn pass_command(
+    parsed_command: &ParsedCommand,
+    topics: &mut TopicHandler,
+    console_handler: &mut ConsoleHandler,
+) -> CommandResult {
+    if let Some(command) = Command::from_str(&parsed_command.command) {
+        match command {
+            Command::Add => topics.add_topics(&parsed_command.args),
+            Command::Pick => console_handler.pick_prompt(topics),
+            Command::Remove => topics.remove_topics(&parsed_command.args),
+            Command::Undo => topics.undo(),
+            Command::Redo => topics.redo(),
+            Command::Exit => topics.exit(),
+        }
+    } else {
+        CommandResult::Fail(format!("Unknown command: {}", &parsed_command.command))
     }
 }
 
-fn load_settings(settings_path: &str) -> String {
-    fs::read_to_string(settings_path).unwrap()
-}
+fn main() {
+    let file_handler = FileHandler::new();
+    let mut console_handler = ConsoleHandler::new();
+    let mut topics: TopicHandler = TopicHandler::new(&file_handler.read_list().unwrap());
 
-fn read_list(topics_file_dir: &PathBuf, topics_file_path: &PathBuf) -> io::Result<Vec<String>> {
-    check_files_exist(topics_file_dir, topics_file_path);
-
-    io::BufReader::new(fs::File::open(topics_file_path)?)
-        .lines()
-        .collect()
+    run_program(&mut topics, &mut console_handler, &file_handler);
+    file_handler.write(&topics).unwrap();
+    file_handler.overwrite_old().unwrap();
 }

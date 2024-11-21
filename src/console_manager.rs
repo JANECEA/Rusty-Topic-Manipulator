@@ -91,6 +91,15 @@ impl ConsoleHandler {
         result
     }
 
+    pub fn read_line() -> Option<String> {
+        let mut line: String = String::new();
+        if io::stdin().read_line(&mut line).is_ok() {
+            Some(line)
+        } else {
+            None
+        }
+    }
+
     pub fn confirm(&self) -> bool {
         io::stdout().flush().unwrap();
         let mut input: String = String::new();

@@ -6,39 +6,7 @@ mod undo_redo_handler;
 use console_manager::ConsoleHandler;
 use console_manager::ParsedCommand;
 use file_handler::FileHandler;
-use std::io;
 use topic_handler::{Command, CommandResult, TopicHandler};
-
-fn run_program(
-    topics: &mut TopicHandler,
-    console_handler: &mut ConsoleHandler,
-    file_handler: &FileHandler,
-) {
-    loop {
-        if topics.should_rerender() {
-            file_handler.try_write(topics);
-            console_handler.render(topics);
-        }
-        let mut line: String = String::new();
-        if io::stdin().read_line(&mut line).is_err() {
-            continue;
-        }
-        let trimmed_line: &str = line.trim();
-        if trimmed_line.is_empty() {
-            continue;
-        }
-        if let CommandResult::Fail(result) = pass_command(
-            &ParsedCommand::parse_from_line(trimmed_line),
-            topics,
-            console_handler,
-        ) {
-            console_handler.print_error(&result);
-        }
-        if !topics.can_continue() {
-            break;
-        }
-    }
-}
 
 fn pass_command(
     parsed_command: &ParsedCommand,
@@ -55,10 +23,35 @@ fn pass_command(
             Command::Exit => topics.exit(),
         }
     } else {
-        CommandResult::Fail(format!(
-            "Unknown command: {}",
-            &parsed_command.get_command()
-        ))
+        CommandResult::Fail(format!("Unknown command: {}", parsed_command.get_command()))
+    }
+}
+
+fn run_program(
+    topics: &mut TopicHandler,
+    console_handler: &mut ConsoleHandler,
+    file_handler: &FileHandler,
+) {
+    loop {
+        if topics.should_rerender() {
+            file_handler.try_write(topics);
+            console_handler.render(topics);
+        }
+        let line: String = ConsoleHandler::read_line().unwrap_or_default();
+        let trimmed_line: &str = line.trim();
+        if trimmed_line.is_empty() {
+            continue;
+        }
+        if let CommandResult::Fail(error_message) = pass_command(
+            &ParsedCommand::parse_from_line(trimmed_line),
+            topics,
+            console_handler,
+        ) {
+            console_handler.print_error(&error_message);
+        }
+        if !topics.can_continue() {
+            break;
+        }
     }
 }
 

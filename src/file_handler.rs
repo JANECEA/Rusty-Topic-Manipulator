@@ -1,4 +1,4 @@
-use crate::topic_handler::TopicHandler;
+use crate::topic_writer::TopicWriter;
 use std::{
     fs,
     io::{self, BufRead, Write},
@@ -11,47 +11,28 @@ const SETTINGS_FILE_NAME: &str = "settings.json";
 pub struct FileHandler {
     topics_file_dir: PathBuf,
     topics_file_path: PathBuf,
-    settings_file_path: PathBuf,
     topics_file_old_path: PathBuf,
 }
 
-impl FileHandler {
-    pub fn new() -> Self {
-        let documents_dir: PathBuf = FileHandler::init_documents_dir();
-        let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
-        let topics_file_path: PathBuf = topics_file_dir.join("topics.happypus");
-        let topics_file_old_path: PathBuf = topics_file_dir.join("topics.happypus.old");
-        let settings_file_path: PathBuf = topics_file_dir.join(SETTINGS_FILE_NAME);
-        Self {
-            topics_file_dir,
-            topics_file_path,
-            topics_file_old_path,
-            settings_file_path,
-        }
-    }
-
-    pub fn write(&self, topics: &TopicHandler) -> io::Result<()> {
+impl TopicWriter for FileHandler {
+    fn write(&self, list: &[String]) -> io::Result<()> {
         let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
-        for line in topics.get_topics() {
+        for line in list {
             writeln!(file, "{}", line)?;
         }
         Ok(())
     }
 
-    pub fn try_write(&self, topics: &TopicHandler) {
-        if let Ok(mut file) = fs::File::create(&self.topics_file_path) {
-            for line in topics.get_topics() {
-                _ = writeln!(file, "{}", line);
-            }
-        }
+    fn try_write(&self, list: &[String]) {
+        _ = self.write(list);
     }
 
-    pub fn overwrite_old(&self) -> io::Result<()> {
+    fn overwrite_old(&self) -> io::Result<()> {
         fs::copy(&self.topics_file_path, &self.topics_file_old_path)?;
         Ok(())
     }
 
-    pub fn check_files_exist(&self) {
+    fn check_source_exist(&self) {
         if !&self.topics_file_dir.exists() {
             fs::create_dir_all(&self.topics_file_dir).expect("Failed to create directory");
         }
@@ -60,19 +41,29 @@ impl FileHandler {
         }
     }
 
-    pub fn load_settings(&self) -> String {
-        fs::read_to_string(&self.settings_file_path).unwrap()
-    }
-
-    pub fn read_list(&self) -> io::Result<Vec<String>> {
-        self.check_files_exist();
+    fn read_list(&self) -> io::Result<Vec<String>> {
+        self.check_source_exist();
 
         io::BufReader::new(fs::File::open(&self.topics_file_path)?)
             .lines()
             .collect()
     }
+}
 
-    pub fn init_documents_dir() -> PathBuf {
+impl FileHandler {
+    pub fn new(topics_file_name: &str, topics_file_old_name: &str) -> Self {
+        let documents_dir: PathBuf = FileHandler::init_documents_dir();
+        let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
+        let topics_file_path: PathBuf = topics_file_dir.join(topics_file_name);
+        let topics_file_old_path: PathBuf = topics_file_dir.join(topics_file_old_name);
+        Self {
+            topics_file_dir,
+            topics_file_path,
+            topics_file_old_path,
+        }
+    }
+
+    fn init_documents_dir() -> PathBuf {
         if let Some(user_dirs) = directories::UserDirs::new() {
             user_dirs
                 .document_dir()

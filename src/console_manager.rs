@@ -1,10 +1,7 @@
 use crate::topic_handler::{Command, CommandResult, TopicHandler};
 use arboard::Clipboard;
 use crossterm::{style::Stylize, terminal};
-use std::{
-    io::{self, Write},
-    vec::Vec,
-};
+use std::io::{self, Write};
 
 pub struct ParsedCommand {
     command: String,
@@ -57,12 +54,14 @@ impl ParsedCommand {
 }
 
 pub struct ConsoleHandler {
+    all_commands: String,
     clipboard: Option<Clipboard>,
 }
 
 impl ConsoleHandler {
     pub fn new() -> Self {
         Self {
+            all_commands: Command::ALL_COMMANDS.join(", "),
             clipboard: if let Ok(clipboard) = Clipboard::new() {
                 Some(clipboard)
             } else {
@@ -101,13 +100,17 @@ impl ConsoleHandler {
     }
 
     pub fn confirm(&self) -> bool {
-        io::stdout().flush().unwrap();
+        _ = io::stdout().flush();
         let mut input: String = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        input.starts_with('y')
+
+        if io::stdin().read_line(&mut input).is_ok() {
+            input.starts_with('y')
+        } else {
+            false
+        }
     }
 
-    pub fn render(&self, topics: &TopicHandler) {
+    pub fn render(&self, list: &[String]) {
         clearscreen::clear().unwrap();
         println!("{}",
     r"
@@ -125,14 +128,13 @@ impl ConsoleHandler {
            @@@@@@                                                              ''#' '-.__.+ '##''
         ".dark_magenta()
 );
-        for (index, topic) in topics.get_topics().iter().enumerate() {
+        for (index, topic) in list.iter().enumerate() {
             println!("{0:>2}. {1}", index + 1, topic);
         }
-        println!();
         println!(
-            "{} {}",
+            "\n{} {}",
             "available commands:".dark_grey(),
-            Command::ALL_COMMANDS.join(", ").green()
+            self.all_commands.as_str().green()
         );
         println!();
         if let Ok((width, _height)) = terminal::size() {

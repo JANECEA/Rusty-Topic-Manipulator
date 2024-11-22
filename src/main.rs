@@ -1,12 +1,13 @@
 mod console_manager;
 mod file_handler;
 mod topic_handler;
+mod topic_writer;
 mod undo_redo_handler;
 
-use console_manager::ConsoleHandler;
-use console_manager::ParsedCommand;
+use console_manager::{ConsoleHandler, ParsedCommand};
 use file_handler::FileHandler;
 use topic_handler::{Command, CommandResult, TopicHandler};
+use topic_writer::TopicWriter;
 
 fn pass_command(
     parsed_command: &ParsedCommand,
@@ -30,12 +31,12 @@ fn pass_command(
 fn run_program(
     topics: &mut TopicHandler,
     console_handler: &mut ConsoleHandler,
-    file_handler: &FileHandler,
+    topic_writer: &impl TopicWriter,
 ) {
     loop {
         if topics.should_rerender() {
-            file_handler.try_write(topics);
-            console_handler.render(topics);
+            topic_writer.try_write(topics.get_topics());
+            console_handler.render(topics.get_topics());
         }
         let line: String = ConsoleHandler::read_line().unwrap_or_default();
         let trimmed_line: &str = line.trim();
@@ -56,11 +57,11 @@ fn run_program(
 }
 
 fn main() {
-    let file_handler = FileHandler::new();
+    let topic_writer = FileHandler::new("topics.happypus", "topics.happypus.old");
     let mut console_handler = ConsoleHandler::new();
-    let mut topics: TopicHandler = TopicHandler::new(&file_handler.read_list().unwrap());
+    let mut topics = TopicHandler::new(&topic_writer.read_list().unwrap());
 
-    run_program(&mut topics, &mut console_handler, &file_handler);
-    file_handler.write(&topics).unwrap();
-    file_handler.overwrite_old().unwrap();
+    run_program(&mut topics, &mut console_handler, &topic_writer);
+    topic_writer.write(topics.get_topics()).unwrap();
+    topic_writer.overwrite_old().unwrap();
 }

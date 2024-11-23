@@ -1,41 +1,5 @@
-use crate::undo_redo_handler::UndoRedoHandler;
+use crate::{commands::CommandResult, undo_redo_handler::UndoRedoHandler};
 use rand::{rngs::ThreadRng, Rng};
-
-#[derive(Copy, Clone)]
-pub enum Command {
-    Add,
-    Pick,
-    Remove,
-    Undo,
-    Redo,
-    Exit,
-}
-
-impl Command {
-    pub const ALL_COMMANDS: [&'static str; 6] = ["add", "pick", "remove", "undo", "redo", "exit"];
-
-    pub fn from_str(command: &str) -> Option<Command> {
-        match command {
-            "add" => Some(Command::Add),
-            "pick" => Some(Command::Pick),
-            "remove" => Some(Command::Remove),
-            "undo" => Some(Command::Undo),
-            "redo" => Some(Command::Redo),
-            "exit" => Some(Command::Exit),
-            _ => None,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &'static str {
-        Command::ALL_COMMANDS[*self as usize]
-    }
-}
-
-pub enum CommandResult {
-    Success,
-    Fail(String),
-}
 
 pub struct TopicHandler {
     topic_history: UndoRedoHandler<Vec<String>>,

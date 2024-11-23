@@ -1,21 +1,16 @@
-mod args_console_handler;
 mod commands;
-mod console_handler;
-mod file_handler;
-mod parsed_command;
-mod runtime_console_handler;
+mod console;
 mod topic_handler;
-mod topic_writer;
 mod undo_redo_handler;
+mod writer;
 
-use args_console_handler::ArgsConsoleHandler;
 use commands::{Command, CommandResult};
-use console_handler::ConsoleHandler;
-use file_handler::FileHandler;
-use parsed_command::ParsedCommand;
-use runtime_console_handler::RuntimeConsoleHandler;
+use console::{
+    args_console_handler::ArgsConsoleHandler, console_handler::ConsoleHandler,
+    parsed_command::ParsedCommand, runtime_console_handler::RuntimeConsoleHandler,
+};
 use topic_handler::TopicHandler;
-use topic_writer::TopicWriter;
+use writer::{file_handler::FileHandler, topic_writer::TopicWriter};
 
 fn pass_arg_command(
     parsed_command: &ParsedCommand,

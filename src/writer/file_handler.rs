@@ -1,4 +1,4 @@
-use crate::topic_writer::TopicWriter;
+use crate::writer::topic_writer::TopicWriter;
 use std::{
     fs,
     io::{self, BufRead, Write},

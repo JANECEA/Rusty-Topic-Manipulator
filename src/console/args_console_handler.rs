@@ -1,5 +1,5 @@
 use crate::{
-    commands::CommandResult, console_handler::ConsoleHandler, topic_handler::TopicHandler,
+    commands::CommandResult, console::console_handler::ConsoleHandler, topic_handler::TopicHandler,
 };
 
 pub struct ArgsConsoleHandler {}

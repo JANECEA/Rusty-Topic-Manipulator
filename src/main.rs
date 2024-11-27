@@ -24,7 +24,10 @@ fn pass_arg_command(
             Command::Add => topics.add_topics(parsed_command.get_args()),
             Command::Pick => console_handler.pick_topic(topics),
             Command::Remove => topics.remove_topics(parsed_command.get_args()),
-            Command::Topics => console_handler.render(topics.get_topics()),
+            Command::Topics => {
+                console_handler.render(topics.get_topics(), "");
+                CommandResult::Success
+            }
             _ => fail,
         }
     } else {
@@ -62,7 +65,7 @@ fn run_program(topics: &mut TopicHandler, topic_writer: &impl TopicWriter) {
     loop {
         if topics.should_rerender() {
             topic_writer.try_write(topics.get_topics());
-            console_handler.render(topics.get_topics());
+            console_handler.render(topics.get_topics(), topic_writer.get_banner());
         }
         let line: String = RuntimeConsoleHandler::read_line().unwrap_or_default();
         let trimmed_line: &str = line.trim();

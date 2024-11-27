@@ -28,26 +28,9 @@ impl ConsoleHandler for RuntimeConsoleHandler {
         result
     }
 
-    fn render(&self, list: &[String]) -> CommandResult {
+    fn render(&self, list: &[String], banner: &str) {
         clearscreen::clear().unwrap();
-        println!(
-            "{}",
-            r"
-         |@@@@@@@'                                                               ##^'     '^##
-      @@@@@@@@@@@@@@@       ___  ___  ____  ____ ______ __ __  __   ___        #              '#
-    @@@M@@@@@@@@@@@@@@@     ||\ //|| ||    ||    | || | || ||\ ||  // \       #                 #
-   @@@@@@@  @@@  @@@@@@@    || \/ || ||==  ||==    ||   || ||\ || (( ___     #   .-.       .-.   #
-   @@     @@@@@@@     @@    ||    || ||___ ||___   ||   || || \||  \_||      #   ##-       -##   #
-   @@     @@    @     @@                                                     +        '-'        #
-    @@@@@@@ @@@ @@@@@@@          ______  ___   ____  __  ___   __          .- #-               .# --.
-  @@  @@@@@@@M@@@@@@@   @        | || |  // \  ||  \ ||  //   (( \         +   ##+++++----++###-#   +
-  @@@  @@@@@@@@@@@@@  @@@          ||   ((  )) ||_// || ((     \           '+ #     +      +    +.-'
-    @@@@@  @@M@@@ @@@@             ||    \_//  ||    ||  \__  \_))           +      #      +     #
-    @@@@@  @@@@@@ @@@@@@                                                      +    +#      #     #
-           @@@@@@                                                              ''#' '-.__.+ '##''
-        "
-            .dark_magenta()
-        );
+        println!("{}", banner.dark_magenta());
         for (index, topic) in list.iter().enumerate() {
             println!("{0:>2}. {1}", index + 1, topic);
         }
@@ -63,7 +46,6 @@ impl ConsoleHandler for RuntimeConsoleHandler {
             }
         }
         println!("\n");
-        CommandResult::Success
     }
 
     fn print_error(&self, message: &str) {
@@ -83,12 +65,6 @@ impl RuntimeConsoleHandler {
         }
     }
 
-    pub fn copy_topic_to_clipboard(&mut self, topic: &str) {
-        if let Some(clipboard) = &mut self.clipboard {
-            _ = clipboard.set_text(topic);
-        }
-    }
-
     pub fn read_line() -> Option<String> {
         let mut line: String = String::new();
         if io::stdin().read_line(&mut line).is_ok() {
@@ -98,7 +74,13 @@ impl RuntimeConsoleHandler {
         }
     }
 
-    pub fn confirm(&self) -> bool {
+    fn copy_topic_to_clipboard(&mut self, topic: &str) {
+        if let Some(clipboard) = &mut self.clipboard {
+            _ = clipboard.set_text(topic);
+        }
+    }
+
+    fn confirm(&self) -> bool {
         _ = io::stdout().flush();
         let mut input: String = String::new();
 

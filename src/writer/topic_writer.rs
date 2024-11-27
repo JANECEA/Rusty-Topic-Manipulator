@@ -10,4 +10,6 @@ pub trait TopicWriter {
     fn check_source_exist(&self);
 
     fn read_list(&self) -> io::Result<Vec<String>>;
+
+    fn get_banner(&self) -> &str;
 }

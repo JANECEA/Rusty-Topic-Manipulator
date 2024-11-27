@@ -14,11 +14,10 @@ impl ConsoleHandler for ArgsConsoleHandler {
         result
     }
 
-    fn render(&self, list: &[String]) -> CommandResult {
+    fn render(&self, list: &[String], _banner: &str) {
         for topic in list {
             println!("{}", topic);
         }
-        CommandResult::Success
     }
 
     fn print_error(&self, message: &str) {

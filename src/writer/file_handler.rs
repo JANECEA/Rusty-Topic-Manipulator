@@ -12,6 +12,7 @@ pub struct FileHandler {
     topics_file_dir: PathBuf,
     topics_file_path: PathBuf,
     topics_file_old_path: PathBuf,
+    banner: String,
 }
 
 impl TopicWriter for FileHandler {
@@ -48,6 +49,10 @@ impl TopicWriter for FileHandler {
             .lines()
             .collect()
     }
+
+    fn get_banner(&self) -> &str {
+        self.banner.as_str()
+    }
 }
 
 impl FileHandler {
@@ -60,7 +65,25 @@ impl FileHandler {
             topics_file_dir,
             topics_file_path,
             topics_file_old_path,
+            banner: Self::set_banner(),
         }
+    }
+
+    fn set_banner() -> String {
+        r"
+         |@@@@@@@'                                                               ##^'     '^##
+      @@@@@@@@@@@@@@@       ___  ___  ____  ____ ______ __ __  __   ___        #              '#
+    @@@M@@@@@@@@@@@@@@@     ||\ //|| ||    ||    | || | || ||\ ||  // \       #                 #
+   @@@@@@@  @@@  @@@@@@@    || \/ || ||==  ||==    ||   || ||\ || (( ___     #   .-.       .-.   #
+   @@     @@@@@@@     @@    ||    || ||___ ||___   ||   || || \||  \_||      #   ##-       -##   #
+   @@     @@    @     @@                                                     +        '-'        #
+    @@@@@@@ @@@ @@@@@@@          ______  ___   ____  __  ___   __          .- #-               .# --.
+  @@  @@@@@@@M@@@@@@@   @        | || |  // \  ||  \ ||  //   (( \         +   ##+++++----++###-#   +
+  @@@  @@@@@@@@@@@@@  @@@          ||   ((  )) ||_// || ((     \           '+ #     +      +    +.-'
+    @@@@@  @@M@@@ @@@@             ||    \_//  ||    ||  \__  \_))           +      #      +     #
+    @@@@@  @@@@@@ @@@@@@                                                      +    +#      #     #
+           @@@@@@                                                              ''#' '-.__.+ '##''
+        ".to_string()
     }
 
     fn init_documents_dir() -> PathBuf {

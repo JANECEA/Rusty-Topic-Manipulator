@@ -1,37 +1,35 @@
 mod commands;
 mod console;
+mod settings;
 mod topic_handler;
 mod undo_redo_handler;
 mod writer;
 
-use commands::{Command, CommandResult};
+use commands::{ArgCommand, CommandResult, RuntimeCommand};
 use console::{
     args_console_handler::ArgsConsoleHandler, console_handler::ConsoleHandler,
     parsed_command::ParsedCommand, runtime_console_handler::RuntimeConsoleHandler,
 };
+use settings::{BannerColor, Settings};
 use topic_handler::TopicHandler;
-use writer::{file_handler::FileHandler, topic_writer::TopicWriter};
+use writer::{file_handler::LocalTopicFileHandler, topic_writer::TopicWriter};
 
 fn pass_arg_command(
     parsed_command: &ParsedCommand,
     topics: &mut TopicHandler,
     console_handler: &mut impl ConsoleHandler,
 ) -> CommandResult {
-    let fail = CommandResult::Fail(format!("Unknown command: {}", parsed_command.get_command()));
-
-    if let Some(command) = Command::from_str(parsed_command.get_command()) {
-        match command {
-            Command::Add => topics.add_topics(parsed_command.get_args()),
-            Command::Pick => console_handler.pick_topic(topics),
-            Command::Remove => topics.remove_topics(parsed_command.get_args()),
-            Command::Topics => {
-                console_handler.render(topics.get_topics(), "");
+    match ArgCommand::from_str(parsed_command.get_command()) {
+        Some(command) => match command {
+            ArgCommand::Add => topics.add_topics(parsed_command.get_args()),
+            ArgCommand::Pick => console_handler.pick_topic(topics),
+            ArgCommand::Remove => topics.remove_topics(parsed_command.get_args()),
+            ArgCommand::Topics => {
+                console_handler.render(topics.get_topics(), "", BannerColor::White);
                 CommandResult::Success
             }
-            _ => fail,
-        }
-    } else {
-        fail
+        },
+        None => CommandResult::Fail(format!("Unknown command: {}", parsed_command.get_command())),
     }
 }
 
@@ -40,22 +38,18 @@ fn pass_runtime_command(
     topics: &mut TopicHandler,
     console_handler: &mut impl ConsoleHandler,
 ) -> CommandResult {
-    let fail = CommandResult::Fail(format!("Unknown command: {}", parsed_command.get_command()));
-
-    if let Some(command) = Command::from_str(parsed_command.get_command()) {
-        match command {
-            Command::Add => topics.add_topics(parsed_command.get_args()),
-            Command::Pick => console_handler.pick_topic(topics),
-            Command::Remove => topics.remove_topics(parsed_command.get_args()),
-            Command::Undo => topics.undo(),
-            Command::Redo => topics.redo(),
-            Command::List => todo!(),
-            Command::Switch => todo!(),
-            Command::Exit => topics.exit(),
-            _ => fail,
-        }
-    } else {
-        fail
+    match RuntimeCommand::from_str(parsed_command.get_command()) {
+        Some(command) => match command {
+            RuntimeCommand::Add => topics.add_topics(parsed_command.get_args()),
+            RuntimeCommand::Pick => console_handler.pick_topic(topics),
+            RuntimeCommand::Remove => topics.remove_topics(parsed_command.get_args()),
+            RuntimeCommand::Undo => topics.undo(),
+            RuntimeCommand::Redo => topics.redo(),
+            RuntimeCommand::List => todo!(),
+            RuntimeCommand::Switch => todo!(),
+            RuntimeCommand::Exit => topics.exit(),
+        },
+        None => CommandResult::Fail(format!("Unknown command: {}", parsed_command.get_command())),
     }
 }
 
@@ -65,7 +59,11 @@ fn run_program(topics: &mut TopicHandler, topic_writer: &impl TopicWriter) {
     loop {
         if topics.should_rerender() {
             topic_writer.try_write(topics.get_topics());
-            console_handler.render(topics.get_topics(), topic_writer.get_banner());
+            console_handler.render(
+                topics.get_topics(),
+                topic_writer.get_banner(),
+                settings::BannerColor::DarkMagenta,
+            );
         }
         let line: String = RuntimeConsoleHandler::read_line().unwrap_or_default();
         let trimmed_line: &str = line.trim();
@@ -99,7 +97,13 @@ fn execute_args(topics: &mut TopicHandler, args: &[String]) {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let topic_writer = FileHandler::new("topics.happypus", "topics.happypus.old");
+    let mut settings: Settings =
+        settings::parse_json_file(writer::file_handler::SETTINGS_FILE_NAME).unwrap();
+    run(args);
+}
+
+fn run(args: Vec<String>) {
+    let topic_writer = LocalTopicFileHandler::new("topics.happypus", "topics.happypus.old");
     let mut topics = TopicHandler::new(&topic_writer.read_list().unwrap());
 
     if args.is_empty() {

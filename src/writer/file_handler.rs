@@ -5,17 +5,17 @@ use std::{
     path::PathBuf,
 };
 
-const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
-const SETTINGS_FILE_NAME: &str = "settings.json";
+pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
+pub const SETTINGS_FILE_NAME: &str = "settings.json";
 
-pub struct FileHandler {
+pub struct LocalTopicFileHandler {
     topics_file_dir: PathBuf,
     topics_file_path: PathBuf,
     topics_file_old_path: PathBuf,
     banner: String,
 }
 
-impl TopicWriter for FileHandler {
+impl TopicWriter for LocalTopicFileHandler {
     fn write(&self, list: &[String]) -> io::Result<()> {
         let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
         for line in list {
@@ -55,9 +55,9 @@ impl TopicWriter for FileHandler {
     }
 }
 
-impl FileHandler {
+impl LocalTopicFileHandler {
     pub fn new(topics_file_name: &str, topics_file_old_name: &str) -> Self {
-        let documents_dir: PathBuf = FileHandler::init_documents_dir();
+        let documents_dir: PathBuf = LocalTopicFileHandler::init_documents_dir();
         let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
         let topics_file_path: PathBuf = topics_file_dir.join(topics_file_name);
         let topics_file_old_path: PathBuf = topics_file_dir.join(topics_file_old_name);
@@ -87,12 +87,11 @@ impl FileHandler {
     }
 
     fn init_documents_dir() -> PathBuf {
-        if let Some(user_dirs) = directories::UserDirs::new() {
-            user_dirs
+        match directories::UserDirs::new() {
+            Some(user_dirs) => user_dirs
                 .document_dir()
-                .map_or_else(|| PathBuf::from("/"), PathBuf::from)
-        } else {
-            PathBuf::from("/")
+                .map_or_else(|| PathBuf::from("/"), PathBuf::from),
+            None => PathBuf::from("/"),
         }
     }
 }

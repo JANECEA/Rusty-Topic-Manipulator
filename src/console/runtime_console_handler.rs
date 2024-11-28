@@ -1,6 +1,7 @@
 use crate::{
-    commands::{Command, CommandResult},
+    commands::{CommandResult, RuntimeCommand},
     console::console_handler::ConsoleHandler,
+    settings::BannerColor,
     topic_handler::TopicHandler,
 };
 use arboard::Clipboard;
@@ -28,9 +29,13 @@ impl ConsoleHandler for RuntimeConsoleHandler {
         result
     }
 
-    fn render(&self, list: &[String], banner: &str) {
-        clearscreen::clear().unwrap();
+    fn render(&self, list: &[String], banner: &str, color: BannerColor) {
+        _ = clearscreen::clear();
         println!("{}", banner.dark_magenta());
+        println!(
+            "{}",
+            crossterm::style::style(banner).with(color.as_crossterm_color())
+        );
         for (index, topic) in list.iter().enumerate() {
             println!("{0:>2}. {1}", index + 1, topic);
         }
@@ -56,7 +61,7 @@ impl ConsoleHandler for RuntimeConsoleHandler {
 impl RuntimeConsoleHandler {
     pub fn new() -> Self {
         Self {
-            all_commands: Command::RUNTIME_COMMANDS.join(", "),
+            all_commands: RuntimeCommand::ALL_COMMANDS.join(", "),
             clipboard: if let Ok(clipboard) = Clipboard::new() {
                 Some(clipboard)
             } else {

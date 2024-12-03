@@ -31,7 +31,6 @@ impl ConsoleHandler for RuntimeConsoleHandler {
 
     fn render(&self, list: &[String], banner: &str, color: BannerColor) {
         _ = clearscreen::clear();
-        println!("{}", banner.dark_magenta());
         println!(
             "{}",
             crossterm::style::style(banner).with(color.as_crossterm_color())

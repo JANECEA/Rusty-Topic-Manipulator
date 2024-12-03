@@ -1,12 +1,10 @@
+use crate::settings::{List, SETTINGS_DIR_NAME};
 use crate::writer::topic_writer::TopicWriter;
 use std::{
     fs,
     io::{self, BufRead, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
-
-pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
-pub const SETTINGS_FILE_NAME: &str = "settings.json";
 
 pub struct LocalTopicFileHandler {
     topics_file_dir: PathBuf,
@@ -56,42 +54,19 @@ impl TopicWriter for LocalTopicFileHandler {
 }
 
 impl LocalTopicFileHandler {
-    pub fn new(topics_file_name: &str, topics_file_old_name: &str) -> Self {
-        let documents_dir: PathBuf = LocalTopicFileHandler::init_documents_dir();
-        let topics_file_dir: PathBuf = documents_dir.join(SETTINGS_DIR_NAME);
-        let topics_file_path: PathBuf = topics_file_dir.join(topics_file_name);
-        let topics_file_old_path: PathBuf = topics_file_dir.join(topics_file_old_name);
+    pub fn new(list: &List, documents_path: &Path) -> Self {
+        let topics_file_dir: PathBuf = documents_path.join(SETTINGS_DIR_NAME);
+        let topics_file_path: PathBuf = topics_file_dir.join(list.path());
+        let topics_file_old_path: PathBuf = topics_file_dir.join(format!("{}.old", list.path()));
         Self {
             topics_file_dir,
             topics_file_path,
             topics_file_old_path,
-            banner: Self::set_banner(),
+            banner: Self::set_banner(list.banner_path()),
         }
     }
 
-    fn set_banner() -> String {
-        r"
-         |@@@@@@@'                                                               ##^'     '^##
-      @@@@@@@@@@@@@@@       ___  ___  ____  ____ ______ __ __  __   ___        #              '#
-    @@@M@@@@@@@@@@@@@@@     ||\ //|| ||    ||    | || | || ||\ ||  // \       #                 #
-   @@@@@@@  @@@  @@@@@@@    || \/ || ||==  ||==    ||   || ||\ || (( ___     #   .-.       .-.   #
-   @@     @@@@@@@     @@    ||    || ||___ ||___   ||   || || \||  \_||      #   ##-       -##   #
-   @@     @@    @     @@                                                     +        '-'        #
-    @@@@@@@ @@@ @@@@@@@          ______  ___   ____  __  ___   __          .- #-               .# --.
-  @@  @@@@@@@M@@@@@@@   @        | || |  // \  ||  \ ||  //   (( \         +   ##+++++----++###-#   +
-  @@@  @@@@@@@@@@@@@  @@@          ||   ((  )) ||_// || ((     \           '+ #     +      +    +.-'
-    @@@@@  @@M@@@ @@@@             ||    \_//  ||    ||  \__  \_))           +      #      +     #
-    @@@@@  @@@@@@ @@@@@@                                                      +    +#      #     #
-           @@@@@@                                                              ''#' '-.__.+ '##''
-        ".to_string()
-    }
-
-    fn init_documents_dir() -> PathBuf {
-        match directories::UserDirs::new() {
-            Some(user_dirs) => user_dirs
-                .document_dir()
-                .map_or_else(|| PathBuf::from("/"), PathBuf::from),
-            None => PathBuf::from("/"),
-        }
+    fn set_banner(banner_path: &str) -> String {
+        fs::read_to_string(banner_path).unwrap_or_default()
     }
 }

@@ -95,22 +95,27 @@ fn execute_args(topics: &mut TopicHandler, args: &[String]) {
     }
 }
 
-fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let mut settings: Settings =
-        settings::parse_json_file(writer::file_handler::SETTINGS_FILE_NAME).unwrap();
-    run(args);
-}
+fn run(args: Vec<String>, mut settings: Settings) {
+    let documents_path = settings.documents_path().to_owned();
+    let name = settings.open_in().to_owned();
+    let Some(list) = settings.get_list_by_name(&name) else {
+        return;
+    };
 
-fn run(args: Vec<String>) {
-    let topic_writer = LocalTopicFileHandler::new("topics.happypus", "topics.happypus.old");
-    let mut topics = TopicHandler::new(&topic_writer.read_list().unwrap());
+    let topic_writer = LocalTopicFileHandler::new(list, &documents_path);
+    let mut topic_handler = TopicHandler::new(&topic_writer.read_list().unwrap());
 
     if args.is_empty() {
-        run_program(&mut topics, &topic_writer);
+        run_program(&mut topic_handler, &topic_writer);
     } else {
-        execute_args(&mut topics, &args);
+        execute_args(&mut topic_handler, &args);
     }
-    topic_writer.write(topics.get_topics()).unwrap();
+    topic_writer.write(topic_handler.get_topics()).unwrap();
     topic_writer.overwrite_old().unwrap();
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut settings: Settings = settings::get_settings().unwrap();
+    run(args, settings);
 }

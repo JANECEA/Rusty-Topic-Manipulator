@@ -16,8 +16,9 @@ impl ConsoleHandler for RuntimeConsoleHandler {
     fn display_chosen_topic(&mut self, topic: &str) {
         self.copy_topic_to_clipboard(topic);
         print!("{}", "Chosen topic: ".blue());
-        println!("{}", topic);
+        println!("{topic}");
         print!("{}", "Remove topic [y/N]: ".green());
+        _ = io::stdout().flush();
     }
 
     fn render(&self, list: &[String], banner: &str, color: &BannerColor) {
@@ -27,14 +28,16 @@ impl ConsoleHandler for RuntimeConsoleHandler {
             crossterm::style::style(banner).with(color.as_crossterm_color())
         );
         for (index, topic) in list.iter().enumerate() {
-            println!("{0:>2}. {1}", index + 1, topic);
+            println!(
+                "{} {topic}",
+                format!("{:>2}.", (index + 1).to_string()).grey(),
+            );
         }
         println!(
-            "\n{} {}",
+            "\n{} {}\n",
             "available commands:".dark_grey(),
             self.all_commands.as_str().green()
         );
-        println!();
         if let Ok((width, _height)) = terminal::size() {
             for _ in 0..width {
                 print!("{}", '='.dark_grey());
@@ -49,8 +52,14 @@ impl ConsoleHandler for RuntimeConsoleHandler {
 
     fn print_lists(&self, lists: &[List]) {
         for (index, list) in lists.iter().enumerate() {
-            println!("{}. {}", (index + 1).to_string().dark_grey(), list.name())
+            println!(
+                "{} {}",
+                format!("{:>2}.", (index + 1).to_string()).dark_grey(),
+                list.name()
+            );
         }
+        print!("{}", "List name or index: ".green());
+        _ = io::stdout().flush();
     }
 }
 

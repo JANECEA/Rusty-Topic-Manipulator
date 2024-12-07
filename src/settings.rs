@@ -37,7 +37,11 @@ impl Settings {
             .join(SETTINGS_FILE_NAME);
 
         Ok(Settings::new(
-            serde_json::from_reader(File::open(json_file_path)?)?,
+            if json_file_path.is_file() {
+                serde_json::from_reader(File::open(json_file_path)?)?
+            } else {
+                get_default_settings()
+            },
             documents_dir,
         ))
     }
@@ -64,22 +68,19 @@ impl Settings {
     }
 
     pub fn get_list(&mut self, query: &str) -> Option<List> {
-        match str::parse::<usize>(query) {
-            Ok(index) => {
-                if index <= self.parsed_settings.lists.len() {
-                    Some(self.get_list_by_index(index - 1))
-                } else {
-                    None
-                }
-            }
-            Err(_) => {
-                for (index, list) in &mut self.parsed_settings.lists.iter_mut().enumerate() {
-                    if list.name == query {
-                        return Some(self.get_list_by_index(index));
-                    }
-                }
+        if let Ok(index) = str::parse::<usize>(query) {
+            if index <= self.parsed_settings.lists.len() {
+                Some(self.get_list_by_index(index - 1))
+            } else {
                 None
             }
+        } else {
+            for (index, list) in &mut self.parsed_settings.lists.iter_mut().enumerate() {
+                if list.name == query {
+                    return Some(self.get_list_by_index(index));
+                }
+            }
+            None
         }
     }
 
@@ -230,5 +231,19 @@ fn get_documents_dir() -> PathBuf {
             .document_dir()
             .map_or_else(|| PathBuf::from("/"), PathBuf::from),
         None => PathBuf::from("/"),
+    }
+}
+
+fn get_default_settings() -> ParsedSettings {
+    ParsedSettings {
+        open_in: "New List".to_string(),
+        open_last: true,
+        lists: vec![List {
+            name: "New List".to_string(),
+            banner_path: "NewListBanner.txt".to_string(),
+            banner_color: BannerColor::White,
+            list_type: ListType::Local,
+            path: "newList.txt".to_string(),
+        }],
     }
 }

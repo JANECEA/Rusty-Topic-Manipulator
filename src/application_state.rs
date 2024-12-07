@@ -60,9 +60,7 @@ impl ApplicationState {
         _ = self.app_state.topic_writer.overwrite_old();
         _ = self.settings.save_settings();
     }
-}
 
-impl ApplicationState {
     fn pass_runtime_command(
         &mut self,
         console_handler: &mut RuntimeConsoleHandler,
@@ -84,14 +82,17 @@ impl ApplicationState {
     }
 
     fn pick_entry_runtime(&mut self, console_handler: &mut RuntimeConsoleHandler) -> CommandResult {
-        let mut result: CommandResult = self.app_state.topic_handler.pick_random();
+        match self.app_state.topic_handler.pick_random() {
+            CommandResult::Success => (),
+            fail => return fail,
+        }
         if let Some(topic) = self.app_state.topic_handler.get_chosen_topic() {
             console_handler.display_chosen_topic(topic);
             if console_handler.confirm() {
-                result = self.app_state.topic_handler.remove_chosen_topic();
+                return self.app_state.topic_handler.remove_chosen_topic();
             }
         }
-        result
+        CommandResult::Success
     }
 
     fn switch_list_runtime(
@@ -99,16 +100,19 @@ impl ApplicationState {
         console_handler: &mut RuntimeConsoleHandler,
     ) -> CommandResult {
         console_handler.print_lists(self.settings.lists());
-        if let Some(line) = RuntimeConsoleHandler::read_line() {
-            let trimmed_line = line.trim();
-            if let Some(list) = self.settings.get_list(trimmed_line) {
-                self.set_app_state(&list);
-                CommandResult::Success
-            } else {
-                CommandResult::Fail(format!("Failed to read list: {trimmed_line}"))
+        match RuntimeConsoleHandler::read_line() {
+            Some(line) => {
+                let trimmed_line = line.trim();
+                if trimmed_line.is_empty() {
+                    CommandResult::Success
+                } else if let Some(list) = self.settings.get_list(trimmed_line) {
+                    self.set_app_state(&list);
+                    CommandResult::Success
+                } else {
+                    CommandResult::Fail(format!("Failed to read list: {trimmed_line}"))
+                }
             }
-        } else {
-            CommandResult::Fail("Failed to read line".to_string())
+            None => CommandResult::Fail("Failed to read line".to_string()),
         }
     }
 

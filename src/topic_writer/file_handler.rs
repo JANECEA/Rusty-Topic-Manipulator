@@ -1,19 +1,20 @@
-use crate::settings::{List, SETTINGS_DIR_NAME};
-use crate::writer::topic_writer::TopicWriter;
+use crate::settings::{BannerColor, List, SETTINGS_DIR_NAME};
+use crate::topic_writer::TopicWriter;
 use std::{
     fs,
     io::{self, BufRead, Write},
     path::{Path, PathBuf},
 };
 
-pub struct LocalTopicFileHandler {
+pub struct LocalFileHandler {
     topics_file_dir: PathBuf,
     topics_file_path: PathBuf,
     topics_file_old_path: PathBuf,
     banner: String,
+    banner_color: BannerColor,
 }
 
-impl TopicWriter for LocalTopicFileHandler {
+impl TopicWriter for LocalFileHandler {
     fn write(&self, list: &[String]) -> io::Result<()> {
         let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
         for line in list {
@@ -51,9 +52,13 @@ impl TopicWriter for LocalTopicFileHandler {
     fn get_banner(&self) -> &str {
         self.banner.as_str()
     }
+
+    fn get_banner_color(&self) -> &BannerColor {
+        &self.banner_color
+    }
 }
 
-impl LocalTopicFileHandler {
+impl LocalFileHandler {
     pub fn new(list: &List, documents_path: &Path) -> Self {
         let topics_file_dir: PathBuf = documents_path.join(SETTINGS_DIR_NAME);
         let topics_file_path: PathBuf = topics_file_dir.join(list.path());
@@ -63,6 +68,7 @@ impl LocalTopicFileHandler {
             topics_file_path,
             topics_file_old_path,
             banner: Self::set_banner(list.banner_path()),
+            banner_color: list.banner_color().clone(),
         }
     }
 

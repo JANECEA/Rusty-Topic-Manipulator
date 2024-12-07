@@ -49,11 +49,11 @@ impl ParsedCommand {
         }
     }
 
-    pub fn get_command(&self) -> &String {
+    pub fn command(&self) -> &String {
         &self.command
     }
 
-    pub fn get_args(&self) -> &Vec<String> {
+    pub fn args(&self) -> &Vec<String> {
         &self.args
     }
 }

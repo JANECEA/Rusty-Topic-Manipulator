@@ -1,8 +1,7 @@
 use crate::{
-    commands::{CommandResult, RuntimeCommand},
-    console::console_handler::ConsoleHandler,
-    settings::BannerColor,
-    topic_handler::TopicHandler,
+    commands::RuntimeCommand,
+    console_handler::ConsoleHandler,
+    settings::{BannerColor, List},
 };
 use arboard::Clipboard;
 use crossterm::{style::Stylize, terminal};
@@ -14,22 +13,14 @@ pub struct RuntimeConsoleHandler {
 }
 
 impl ConsoleHandler for RuntimeConsoleHandler {
-    fn pick_topic(&mut self, topics: &mut TopicHandler) -> CommandResult {
-        let mut result: CommandResult = topics.pick_random();
-
-        if let Some(topic) = topics.get_chosen_topic() {
-            self.copy_topic_to_clipboard(topic);
-            print!("{}", "Chosen topic: ".blue());
-            println!("{}", topic);
-            print!("{}", "Remove topic [y/N]: ".green());
-            if self.confirm() {
-                result = topics.remove_chosen_topic();
-            }
-        }
-        result
+    fn display_chosen_topic(&mut self, topic: &str) {
+        self.copy_topic_to_clipboard(topic);
+        print!("{}", "Chosen topic: ".blue());
+        println!("{}", topic);
+        print!("{}", "Remove topic [y/N]: ".green());
     }
 
-    fn render(&self, list: &[String], banner: &str, color: BannerColor) {
+    fn render(&self, list: &[String], banner: &str, color: &BannerColor) {
         _ = clearscreen::clear();
         println!(
             "{}",
@@ -55,6 +46,12 @@ impl ConsoleHandler for RuntimeConsoleHandler {
     fn print_error(&self, message: &str) {
         eprintln!("{}", message.red())
     }
+
+    fn print_lists(&self, lists: &[List]) {
+        for (index, list) in lists.iter().enumerate() {
+            println!("{}. {}", (index + 1).to_string().dark_grey(), list.name())
+        }
+    }
 }
 
 impl RuntimeConsoleHandler {
@@ -78,13 +75,7 @@ impl RuntimeConsoleHandler {
         }
     }
 
-    fn copy_topic_to_clipboard(&mut self, topic: &str) {
-        if let Some(clipboard) = &mut self.clipboard {
-            _ = clipboard.set_text(topic);
-        }
-    }
-
-    fn confirm(&self) -> bool {
+    pub fn confirm(&self) -> bool {
         _ = io::stdout().flush();
         let mut input: String = String::new();
 
@@ -92,6 +83,12 @@ impl RuntimeConsoleHandler {
             input.starts_with('y')
         } else {
             false
+        }
+    }
+
+    fn copy_topic_to_clipboard(&mut self, topic: &str) {
+        if let Some(clipboard) = &mut self.clipboard {
+            _ = clipboard.set_text(topic);
         }
     }
 }

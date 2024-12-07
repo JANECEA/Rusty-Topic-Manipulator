@@ -2,57 +2,109 @@ use crossterm::style::Color;
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fs::File, path::PathBuf};
 
+use crate::commands::CommandResult;
+
 pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 pub const SETTINGS_FILE_NAME: &str = "settings.json";
 
+#[derive(Debug)]
 pub struct Settings {
-    settings: ParsedSettings,
+    parsed_settings: ParsedSettings,
+    previous_open_in: String,
     path_to_settings_file: PathBuf,
     path_to_settings_dir: PathBuf,
     documents_path: PathBuf,
 }
 
 impl Settings {
-    fn new(settings: ParsedSettings, documents_path: PathBuf) -> Self {
+    fn new(parsed_settings: ParsedSettings, documents_path: PathBuf) -> Self {
+        let previous_open_in = parsed_settings.open_in.to_owned();
         let path_to_settings_dir = documents_path.join(SETTINGS_DIR_NAME);
         let path_to_settings_file = path_to_settings_dir.join(SETTINGS_FILE_NAME);
         Self {
-            settings,
-            documents_path,
-            path_to_settings_dir,
+            parsed_settings,
+            previous_open_in,
             path_to_settings_file,
+            path_to_settings_dir,
+            documents_path,
         }
+    }
+
+    pub fn get_settings() -> Result<Settings, Box<dyn Error>> {
+        let documents_dir = get_documents_dir();
+        let json_file_path = documents_dir
+            .join(SETTINGS_DIR_NAME)
+            .join(SETTINGS_FILE_NAME);
+
+        Ok(Settings::new(
+            serde_json::from_reader(File::open(json_file_path)?)?,
+            documents_dir,
+        ))
+    }
+
+    pub fn save_settings(&self) -> Result<(), Box<dyn Error>> {
+        if !self.settings_changed() {
+            return Ok(());
+        }
+        let file = File::create(&self.path_to_settings_file)?;
+        serde_json::to_writer_pretty(file, &self.parsed_settings)?;
+        Ok(())
+    }
+
+    fn settings_changed(&self) -> bool {
+        self.parsed_settings.open_last && self.previous_open_in != self.parsed_settings.open_in
     }
 
     pub fn open_in(&self) -> &str {
-        &self.settings.open_in
+        &self.parsed_settings.open_in
     }
 
     pub fn lists(&self) -> &[List] {
-        &self.settings.lists
+        &self.parsed_settings.lists
     }
 
-    pub fn get_list_by_name(&mut self, name: &str) -> Option<&List> {
-        for (index, list) in &mut self.settings.lists.iter_mut().enumerate() {
-            if list.name == name {
-                return Some(self.get_list_by_index(index));
+    pub fn get_list(&mut self, query: &str) -> Option<List> {
+        match str::parse::<usize>(query) {
+            Ok(index) => {
+                if index <= self.parsed_settings.lists.len() {
+                    Some(self.get_list_by_index(index - 1))
+                } else {
+                    None
+                }
+            }
+            Err(_) => {
+                for (index, list) in &mut self.parsed_settings.lists.iter_mut().enumerate() {
+                    if list.name == query {
+                        return Some(self.get_list_by_index(index));
+                    }
+                }
+                None
             }
         }
-        None
     }
 
-    pub fn get_list_by_index(&mut self, index: usize) -> &List {
-        let list = &mut self.settings.lists[index];
+    pub fn get_list_by_index(&mut self, index: usize) -> List {
+        let mut list = self.parsed_settings.lists[index].clone();
         list.banner_path = self
             .path_to_settings_dir
             .join(&list.banner_path)
             .display()
             .to_string();
 
-        if self.settings.open_last && self.settings.open_in != list.name {
-            list.name.clone_into(&mut self.settings.open_in);
+        list
+    }
+
+    pub fn set_open_in_list(&mut self, list: &List) {
+        self.parsed_settings.open_in = list.name().to_string();
+    }
+
+    pub fn set_open_in(&mut self, query: &str) -> CommandResult {
+        if let Some(list) = self.get_list(query) {
+            self.parsed_settings.open_in = list.name().to_string();
+            CommandResult::Success
+        } else {
+            CommandResult::Fail(format!("Couldn't find: \"{query}\" in lists."))
         }
-        &self.settings.lists[index]
     }
 
     pub fn path_to_settings_file(&self) -> &PathBuf {
@@ -87,6 +139,18 @@ pub struct List {
     path: String,
 }
 
+impl Clone for List {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            banner_path: self.banner_path.clone(),
+            banner_color: self.banner_color.clone(),
+            list_type: self.list_type.clone(),
+            path: self.path.clone(),
+        }
+    }
+}
+
 impl List {
     pub fn name(&self) -> &str {
         &self.name
@@ -109,7 +173,7 @@ impl List {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum BannerColor {
     Black,
@@ -153,7 +217,7 @@ impl BannerColor {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ListType {
     GoogleDrive,
@@ -167,16 +231,4 @@ fn get_documents_dir() -> PathBuf {
             .map_or_else(|| PathBuf::from("/"), PathBuf::from),
         None => PathBuf::from("/"),
     }
-}
-
-pub fn get_settings() -> Result<Settings, Box<dyn Error>> {
-    let documents_dir = get_documents_dir();
-    let json_file_path = documents_dir
-        .join(SETTINGS_DIR_NAME)
-        .join(SETTINGS_FILE_NAME);
-
-    Ok(Settings::new(
-        serde_json::from_reader(File::open(json_file_path)?)?,
-        documents_dir,
-    ))
 }

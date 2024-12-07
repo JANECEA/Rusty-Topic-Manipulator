@@ -1,3 +1,6 @@
+pub mod file_handler;
+
+use crate::settings::BannerColor;
 use std::io;
 
 pub trait TopicWriter {
@@ -12,4 +15,6 @@ pub trait TopicWriter {
     fn read_list(&self) -> io::Result<Vec<String>>;
 
     fn get_banner(&self) -> &str;
+
+    fn get_banner_color(&self) -> &BannerColor;
 }

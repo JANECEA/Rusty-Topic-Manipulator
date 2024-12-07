@@ -36,7 +36,6 @@ impl<T> UndoRedoHandler<T> {
         self.current_index >= self.end_index && self.at_end
     }
 
-    #[allow(dead_code)]
     pub fn get_current(&self) -> Option<&T> {
         if self.at_end {
             return None;
@@ -88,7 +87,6 @@ impl<T> UndoRedoHandler<T> {
         true
     }
 
-    #[allow(dead_code)]
     pub fn remove_node(&mut self, go_to_previous: bool) -> Result<(), &'static str> {
         if self.is_head() {
             return Err("Invalid operation: trying to remove head.");

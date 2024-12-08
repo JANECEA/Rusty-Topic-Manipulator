@@ -221,8 +221,8 @@ impl BannerColor {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ListType {
-    GoogleDrive,
     Local,
+    Network,
 }
 
 fn get_documents_dir() -> PathBuf {

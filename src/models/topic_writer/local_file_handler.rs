@@ -1,5 +1,7 @@
-use crate::settings::{BannerColor, List, SETTINGS_DIR_NAME};
-use crate::topic_writer::TopicWriter;
+use crate::{
+    models::topic_writer::TopicWriter,
+    settings::{BannerColor, List, SETTINGS_DIR_NAME},
+};
 use std::{
     fs,
     io::{self, BufRead, Write},

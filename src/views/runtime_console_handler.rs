@@ -1,23 +1,35 @@
 use crate::{
-    commands::RuntimeCommand,
-    console_handler::ConsoleHandler,
     settings::{BannerColor, List},
+    views::{parsed_command::ParsedCommand, View},
 };
 use arboard::Clipboard;
 use crossterm::{style::Stylize, terminal};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Read, Write};
 
-pub struct RuntimeConsoleHandler {
+pub struct RuntimeConsoleHandler<R: BufRead> {
     all_commands: String,
     clipboard: Option<Clipboard>,
+    reader: R,
 }
 
-impl ConsoleHandler for RuntimeConsoleHandler {
+impl<R: BufRead> View for RuntimeConsoleHandler<R> {
     fn display_chosen_topic(&mut self, topic: &str) {
         self.copy_topic_to_clipboard(topic);
         print!("{}", "Chosen topic: ".blue());
         println!("{topic}");
         print!("{}", "Remove topic [y/N]: ".green());
+        _ = io::stdout().flush();
+    }
+
+    fn print_lists(&self, lists: &[List]) {
+        for (index, list) in lists.iter().enumerate() {
+            println!(
+                "{} {}",
+                format!("{:>2}.", (index + 1).to_string()).dark_grey(),
+                list.name()
+            );
+        }
+        print!("{}", "List name or index: ".green());
         _ = io::stdout().flush();
     }
 
@@ -50,49 +62,35 @@ impl ConsoleHandler for RuntimeConsoleHandler {
         eprintln!("{}", message.red())
     }
 
-    fn print_lists(&self, lists: &[List]) {
-        for (index, list) in lists.iter().enumerate() {
-            println!(
-                "{} {}",
-                format!("{:>2}.", (index + 1).to_string()).dark_grey(),
-                list.name()
-            );
-        }
-        print!("{}", "List name or index: ".green());
-        _ = io::stdout().flush();
-    }
-}
-
-impl RuntimeConsoleHandler {
-    pub fn new() -> Self {
-        Self {
-            all_commands: RuntimeCommand::ALL_COMMANDS.join(", "),
-            clipboard: if let Ok(clipboard) = Clipboard::new() {
-                Some(clipboard)
-            } else {
-                None
-            },
-        }
-    }
-
-    pub fn read_line() -> Option<String> {
+    fn get_input(&mut self) -> Option<ParsedCommand> {
         let mut line: String = String::new();
-        if io::stdin().read_line(&mut line).is_ok() {
-            Some(line)
+        let result = self.reader.read_line(&mut line);
+        
+        if result.is_ok() && result.unwrap() > 0 {
+            Some(ParsedCommand::parse_from_line(&line))
         } else {
             None
         }
     }
+}
 
-    pub fn confirm(&self) -> bool {
-        _ = io::stdout().flush();
+impl<R: BufRead> RuntimeConsoleHandler<R> {
+    pub fn new(reader: R) -> Self {
+        Self {
+            all_commands: crate::controllers::commands::RuntimeCommand::ALL_COMMANDS.join(", "),
+            clipboard: match Clipboard::new() {
+                Ok(clipboard) => Some(clipboard),
+                Err(_) => None,
+            },
+            reader,
+        }
+    }
+
+    pub fn confirm(&mut self) -> bool {
+        _ = self.reader.flush();
         let mut input: String = String::new();
 
-        if io::stdin().read_line(&mut input).is_ok() {
-            input.starts_with('y')
-        } else {
-            false
-        }
+        self.reader.read_line(&mut input).is_ok() && input == "y"
     }
 
     fn copy_topic_to_clipboard(&mut self, topic: &str) {

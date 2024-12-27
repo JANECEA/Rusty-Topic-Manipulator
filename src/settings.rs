@@ -1,8 +1,7 @@
 use crossterm::style::Color;
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fs::File, path::PathBuf};
-
-use crate::commands::CommandResult;
+use crate::controllers::commands::CommandResult;
 
 pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 pub const SETTINGS_FILE_NAME: &str = "settings.json";

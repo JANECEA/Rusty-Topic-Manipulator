@@ -1,4 +1,5 @@
-pub mod file_handler;
+pub mod local_file_handler;
+pub  mod network_file_handler;
 
 use crate::settings::BannerColor;
 use std::io;

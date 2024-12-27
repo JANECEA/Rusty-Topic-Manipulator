@@ -5,28 +5,27 @@ pub struct ParsedCommand {
 
 impl ParsedCommand {
     pub fn parse_from_args(args: &[String]) -> Self {
-        let (command, args): (String, Vec<String>) = if args.is_empty() {
-            (String::new(), Vec::new())
-        } else if args.len() == 1 {
-            (args[0].to_string(), Vec::new())
-        } else {
-            (args[0].to_string(), args[1..].to_vec())
+        let (command, args): (String, Vec<String>) = match args.len() {
+            0 => (String::new(), Vec::new()),
+            1 => (args[0].to_string(), Vec::new()),
+            _ => (args[0].to_string(), args[1..].to_vec()),
         };
         Self { command, args }
     }
 
-    pub fn parse_from_line(line: &str) -> Self {
+    pub fn parse_from_line(mut line: &str) -> Self {
+        line = line.trim();
         let index: usize;
         if let Some(i) = line.find(' ') {
             index = i
         } else {
             return ParsedCommand {
                 command: line.to_string(),
-                args: vec![],
+                args: Vec::new(),
             };
         }
         let (command, rest) = line.split_at(index);
-        let mut args_list = vec![];
+        let mut args_list = Vec::new();
         let mut current_word = String::new();
         let mut in_quotes = false;
 
@@ -47,6 +46,10 @@ impl ParsedCommand {
             command: command.to_string(),
             args: args_list,
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.command.is_empty()
     }
 
     pub fn command(&self) -> &String {

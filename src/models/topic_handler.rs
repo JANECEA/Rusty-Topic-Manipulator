@@ -1,5 +1,8 @@
-use crate::{commands::CommandResult, undo_redo_handler::UndoRedoHandler};
 use rand::{rngs::ThreadRng, Rng};
+use crate::{
+    controllers::commands::CommandResult,
+    models::undo_redo_handler::UndoRedoHandler
+};
 
 pub struct TopicHandler {
     topic_history: UndoRedoHandler<Vec<String>>,

@@ -4,7 +4,7 @@ use crate::{
 };
 use arboard::Clipboard;
 use crossterm::{style::Stylize, terminal};
-use std::io::{self, BufRead, Read, Write};
+use std::io::{self, BufRead, Write};
 
 pub struct RuntimeConsoleHandler<R: BufRead> {
     all_commands: String,
@@ -21,7 +21,7 @@ impl<R: BufRead> View for RuntimeConsoleHandler<R> {
         _ = io::stdout().flush();
     }
 
-    fn print_lists(&self, lists: &[List]) {
+    fn print_lists(&mut self, lists: &[List]) {
         for (index, list) in lists.iter().enumerate() {
             println!(
                 "{} {}",
@@ -33,7 +33,7 @@ impl<R: BufRead> View for RuntimeConsoleHandler<R> {
         _ = io::stdout().flush();
     }
 
-    fn render(&self, list: &[String], banner: &str, color: &BannerColor) {
+    fn render(&mut self, list: &[String], banner: &str, color: &BannerColor) {
         _ = clearscreen::clear();
         println!(
             "{}",
@@ -58,14 +58,14 @@ impl<R: BufRead> View for RuntimeConsoleHandler<R> {
         println!("\n");
     }
 
-    fn print_error(&self, message: &str) {
+    fn print_error(&mut self, message: &str) {
         eprintln!("{}", message.red())
     }
 
     fn get_input(&mut self) -> Option<ParsedCommand> {
         let mut line: String = String::new();
         let result = self.reader.read_line(&mut line);
-        
+
         if result.is_ok() && result.unwrap() > 0 {
             Some(ParsedCommand::parse_from_line(&line))
         } else {
@@ -84,13 +84,6 @@ impl<R: BufRead> RuntimeConsoleHandler<R> {
             },
             reader,
         }
-    }
-
-    pub fn confirm(&mut self) -> bool {
-        _ = self.reader.flush();
-        let mut input: String = String::new();
-
-        self.reader.read_line(&mut input).is_ok() && input == "y"
     }
 
     fn copy_topic_to_clipboard(&mut self, topic: &str) {

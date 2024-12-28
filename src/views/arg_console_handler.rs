@@ -13,23 +13,23 @@ pub struct ArgsConsoleHandler<S: Write, E: Write> {
 
 impl<S: Write, E: Write> View for ArgsConsoleHandler<S, E> {
     fn display_chosen_topic(&mut self, topic: &str) {
-        _ = writeln!(&self.std_writer, "{topic}");
+        _ = writeln!(&mut self.std_writer, "{topic}");
     }
 
-    fn print_lists(&self, lists: &[List]) {
+    fn print_lists(&mut self, lists: &[List]) {
         for list in lists {
-            _ = writeln!(&self.std_writer, "{}", list.name());
+            _ = writeln!(&mut self.std_writer, "{}", list.name());
         }
     }
 
-    fn render(&self, list: &[String], _banner: &str, _color: &BannerColor) {
+    fn render(&mut self, list: &[String], _banner: &str, _color: &BannerColor) {
         for topic in list {
-            _ = writeln!(&self.std_writer, "{topic}");
+            _ = writeln!(&mut self.std_writer, "{topic}");
         }
     }
 
-    fn print_error(&self, message: &str) {
-        _ = writeln!(&self.err_writer, "{message}")
+    fn print_error(&mut self, message: &str) {
+        _ = writeln!(&mut self.err_writer, "{message}")
     }
 
     fn get_input(&mut self) -> Option<ParsedCommand> {

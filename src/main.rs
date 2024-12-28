@@ -1,17 +1,16 @@
-#![allow(dead_code)]
 mod controllers;
 mod models;
 mod settings;
 mod views;
 
 use controllers::{
-    args_controller::ArgsController, master_controller::MasterController,
-    runtime_controller::RuntimeController, Controller,
+    controller_factory::{ArgControllerFactory, RuntimeControllerFactory},
+    master_controller::MasterController,
 };
 use settings::Settings;
 use std::io;
 use views::{
-    args_console_handler::ArgsConsoleHandler, runtime_console_handler::RuntimeConsoleHandler, View,
+    arg_console_handler::ArgsConsoleHandler, runtime_console_handler::RuntimeConsoleHandler,
 };
 
 fn main() {
@@ -22,19 +21,19 @@ fn main() {
         return;
     };
 
-    let (view, sub_controller): (impl View, impl Controller) = if args.is_empty() {
-        (
-            RuntimeConsoleHandler::new(io::BufReader::new(io::stdin())),
-            RuntimeController::new(),
+    let mut master_controller = if args.is_empty() {
+        MasterController::new(
+            settings,
+            Box::new(RuntimeConsoleHandler::new(io::BufReader::new(io::stdin()))),
+            RuntimeControllerFactory::new(),
         )
     } else {
-        (
-            ArgsConsoleHandler::new(args, io::stdout(), io::stderr()),
-            ArgsController::new(),
+        MasterController::new(
+            settings,
+            Box::new(ArgsConsoleHandler::new(args, io::stdout(), io::stderr())),
+            ArgControllerFactory::new(),
         )
     };
-
-    let mut master_controller = MasterController::new(settings, view, sub_controller);
     master_controller.run();
     master_controller.close();
 }

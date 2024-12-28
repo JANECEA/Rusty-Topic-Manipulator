@@ -8,11 +8,23 @@ pub enum ArgCommand {
     Switch,
 }
 
-impl ArgCommand {
-    pub const ALL_COMMANDS: [&'static str; 6] =
-        ["add", "pick", "remove", "entries", "list", "switch"];
+pub trait StrEnum {
+    fn as_str(&self) -> &'static str;
 
-    pub fn from_str(command: &str) -> Option<ArgCommand> {
+    fn from_str(command: &str) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+impl StrEnum for ArgCommand {
+    fn as_str(&self) -> &'static str {
+        Self::ALL_COMMANDS[*self as usize]
+    }
+
+    fn from_str(command: &str) -> Option<Self>
+    where
+        Self: Sized,
+    {
         match command {
             "add" => Some(ArgCommand::Add),
             "pick" => Some(ArgCommand::Pick),
@@ -23,10 +35,11 @@ impl ArgCommand {
             _ => None,
         }
     }
+}
 
-    pub fn as_str(&self) -> &'static str {
-        ArgCommand::ALL_COMMANDS[*self as usize]
-    }
+impl ArgCommand {
+    pub const ALL_COMMANDS: [&'static str; 6] =
+        ["add", "pick", "remove", "entries", "list", "switch"];
 }
 
 #[derive(Copy, Clone)]
@@ -40,11 +53,15 @@ pub enum RuntimeCommand {
     Exit,
 }
 
-impl RuntimeCommand {
-    pub const ALL_COMMANDS: [&'static str; 7] =
-        ["add", "pick", "remove", "undo", "redo", "switch", "exit"];
+impl StrEnum for RuntimeCommand {
+    fn as_str(&self) -> &'static str {
+        Self::ALL_COMMANDS[*self as usize]
+    }
 
-    pub fn from_str(command: &str) -> Option<RuntimeCommand> {
+    fn from_str(command: &str) -> Option<Self>
+    where
+        Self: Sized,
+    {
         match command {
             "add" => Some(RuntimeCommand::Add),
             "pick" => Some(RuntimeCommand::Pick),
@@ -56,10 +73,11 @@ impl RuntimeCommand {
             _ => None,
         }
     }
+}
 
-    pub fn as_str(&self) -> &'static str {
-        RuntimeCommand::ALL_COMMANDS[*self as usize]
-    }
+impl RuntimeCommand {
+    pub const ALL_COMMANDS: [&'static str; 7] =
+        ["add", "pick", "remove", "undo", "redo", "switch", "exit"];
 }
 
 pub enum CommandResult {

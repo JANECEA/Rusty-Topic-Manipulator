@@ -1,7 +1,7 @@
+use crate::controllers::commands::CommandResult;
 use crossterm::style::Color;
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fs::File, path::PathBuf};
-use crate::controllers::commands::CommandResult;
 
 pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 pub const SETTINGS_FILE_NAME: &str = "settings.json";
@@ -13,10 +13,15 @@ pub struct Settings {
     path_to_settings_file: PathBuf,
     path_to_settings_dir: PathBuf,
     documents_path: PathBuf,
+    default_settings_used: bool,
 }
 
 impl Settings {
-    fn new(parsed_settings: ParsedSettings, documents_path: PathBuf) -> Self {
+    fn new(
+        parsed_settings: ParsedSettings,
+        documents_path: PathBuf,
+        default_settings_used: bool,
+    ) -> Self {
         let previous_open_in = parsed_settings.open_in.to_owned();
         let path_to_settings_dir = documents_path.join(SETTINGS_DIR_NAME);
         let path_to_settings_file = path_to_settings_dir.join(SETTINGS_FILE_NAME);
@@ -26,6 +31,7 @@ impl Settings {
             path_to_settings_file,
             path_to_settings_dir,
             documents_path,
+            default_settings_used,
         }
     }
 
@@ -35,13 +41,15 @@ impl Settings {
             .join(SETTINGS_DIR_NAME)
             .join(SETTINGS_FILE_NAME);
 
+        let default_settings_used = !json_file_path.is_file();
         Ok(Settings::new(
-            if json_file_path.is_file() {
-                serde_json::from_reader(File::open(json_file_path)?)?
-            } else {
+            if default_settings_used {
                 get_default_settings()
+            } else {
+                serde_json::from_reader(File::open(json_file_path)?)?
             },
             documents_dir,
+            default_settings_used,
         ))
     }
 
@@ -55,7 +63,9 @@ impl Settings {
     }
 
     fn settings_changed(&self) -> bool {
-        self.parsed_settings.open_last && self.previous_open_in != self.parsed_settings.open_in
+        self.default_settings_used
+            || self.parsed_settings.open_last
+                && self.previous_open_in != self.parsed_settings.open_in
     }
 
     pub fn open_in(&self) -> &str {

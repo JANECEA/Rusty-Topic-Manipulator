@@ -1,4 +1,4 @@
-use crate::models::{topic_handler::TopicHandler, topic_writer::TopicWriter};
+use crate::models::{topic_handler::TopicHandler, TopicWriter};
 
 pub struct Model {
     pub topic_writer: Box<dyn TopicWriter>,

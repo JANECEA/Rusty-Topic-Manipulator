@@ -9,9 +9,7 @@ use controllers::{
 };
 use settings::Settings;
 use std::io;
-use views::{
-    arg_console_handler::ArgsConsoleHandler, runtime_console_handler::RuntimeConsoleHandler,
-};
+use views::{arg_view::ArgConsoleView, runtime_view::RuntimeConsoleView};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -24,16 +22,19 @@ fn main() {
     let mut master_controller = if args.is_empty() {
         MasterController::new(
             settings,
-            Box::new(RuntimeConsoleHandler::new(io::BufReader::new(io::stdin()))),
+            Box::new(RuntimeConsoleView::new(io::BufReader::new(io::stdin()))),
             RuntimeControllerFactory::new(),
         )
     } else {
         MasterController::new(
             settings,
-            Box::new(ArgsConsoleHandler::new(args, io::stdout(), io::stderr())),
+            Box::new(ArgConsoleView::new(args, io::stdout(), io::stderr())),
             ArgControllerFactory::new(),
         )
     };
     master_controller.run();
-    master_controller.close();
+
+    if let Err(error) = master_controller.close() {
+        eprintln!("{error}");
+    }
 }

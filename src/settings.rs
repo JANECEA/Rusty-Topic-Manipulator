@@ -1,7 +1,8 @@
 use crate::controllers::commands::CommandResult;
+use anyhow::Result;
 use crossterm::style::Color;
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs::File, path::PathBuf};
+use std::{fs::File, path::PathBuf};
 
 pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 pub const SETTINGS_FILE_NAME: &str = "settings.json";
@@ -35,7 +36,7 @@ impl Settings {
         }
     }
 
-    pub fn get_settings() -> Result<Settings, Box<dyn Error>> {
+    pub fn get_settings() -> Result<Settings> {
         let documents_dir = get_documents_dir();
         let json_file_path = documents_dir
             .join(SETTINGS_DIR_NAME)
@@ -53,7 +54,7 @@ impl Settings {
         ))
     }
 
-    pub fn save_settings(&self) -> Result<(), Box<dyn Error>> {
+    pub fn save_settings(&self) -> Result<()> {
         if !self.settings_changed() {
             return Ok(());
         }

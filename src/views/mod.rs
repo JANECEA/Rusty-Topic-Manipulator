@@ -1,6 +1,6 @@
-pub mod arg_console_handler;
+pub mod arg_view;
 pub mod parsed_command;
-pub mod runtime_console_handler;
+pub mod runtime_view;
 
 use crate::settings::{BannerColor, List};
 use crate::views::parsed_command::ParsedCommand;

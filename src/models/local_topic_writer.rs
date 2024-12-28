@@ -1,5 +1,5 @@
 use crate::{
-    models::topic_writer::TopicWriter,
+    models::TopicWriter,
     settings::{BannerColor, List, SETTINGS_DIR_NAME},
 };
 use std::{
@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub struct LocalFileHandler {
+pub struct LocalTopicWriter {
     topics_file_dir: PathBuf,
     topics_file_path: PathBuf,
     topics_file_old_path: PathBuf,
@@ -16,7 +16,7 @@ pub struct LocalFileHandler {
     banner_color: BannerColor,
 }
 
-impl TopicWriter for LocalFileHandler {
+impl TopicWriter for LocalTopicWriter {
     fn write(&self, list: &[String]) -> io::Result<()> {
         let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
         for line in list {
@@ -43,7 +43,7 @@ impl TopicWriter for LocalFileHandler {
         }
     }
 
-    fn read_list(&self) -> io::Result<Vec<String>> {
+    fn read_list(&mut self) -> io::Result<Vec<String>> {
         self.check_source_exist();
 
         io::BufReader::new(fs::File::open(&self.topics_file_path)?)
@@ -60,7 +60,7 @@ impl TopicWriter for LocalFileHandler {
     }
 }
 
-impl LocalFileHandler {
+impl LocalTopicWriter {
     pub fn new(list: &List, documents_path: &Path) -> Self {
         let topics_file_dir: PathBuf = documents_path.join(SETTINGS_DIR_NAME);
         let topics_file_path: PathBuf = topics_file_dir.join(list.path());

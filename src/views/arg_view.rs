@@ -5,13 +5,13 @@ use crate::{
 };
 use std::io::Write;
 
-pub struct ArgsConsoleHandler<S: Write, E: Write> {
+pub struct ArgConsoleView<S: Write, E: Write> {
     input: Option<Vec<String>>,
     std_writer: S,
     err_writer: E,
 }
 
-impl<S: Write, E: Write> View for ArgsConsoleHandler<S, E> {
+impl<S: Write, E: Write> View for ArgConsoleView<S, E> {
     fn display_chosen_topic(&mut self, topic: &str) {
         _ = writeln!(&mut self.std_writer, "{topic}");
     }
@@ -44,7 +44,7 @@ impl<S: Write, E: Write> View for ArgsConsoleHandler<S, E> {
     }
 }
 
-impl<S: Write, E: Write> ArgsConsoleHandler<S, E> {
+impl<S: Write, E: Write> ArgConsoleView<S, E> {
     pub fn new(args: Vec<String>, std_writer: S, err_writer: E) -> Self {
         Self {
             input: Some(args),

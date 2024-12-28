@@ -6,13 +6,13 @@ use arboard::Clipboard;
 use crossterm::{style::Stylize, terminal};
 use std::io::{self, BufRead, Write};
 
-pub struct RuntimeConsoleHandler<R: BufRead> {
+pub struct RuntimeConsoleView<R: BufRead> {
     all_commands: String,
     clipboard: Option<Clipboard>,
     reader: R,
 }
 
-impl<R: BufRead> View for RuntimeConsoleHandler<R> {
+impl<R: BufRead> View for RuntimeConsoleView<R> {
     fn display_chosen_topic(&mut self, topic: &str) {
         self.copy_topic_to_clipboard(topic);
         print!("{}", "Chosen topic: ".blue());
@@ -74,7 +74,7 @@ impl<R: BufRead> View for RuntimeConsoleHandler<R> {
     }
 }
 
-impl<R: BufRead> RuntimeConsoleHandler<R> {
+impl<R: BufRead> RuntimeConsoleView<R> {
     pub fn new(reader: R) -> Self {
         Self {
             all_commands: crate::controllers::commands::RuntimeCommand::ALL_COMMANDS.join(", "),

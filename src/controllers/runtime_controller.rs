@@ -4,11 +4,10 @@ use crate::{
         Controller,
     },
     models::{
-        model::Model,
-        topic_handler::TopicHandler,
-        topic_writer::{local_file_handler::LocalFileHandler, TopicWriter},
+        local_topic_writer::LocalTopicWriter, model::Model,
+        network_topic_writer::NetworkTopicWriter, topic_handler::TopicHandler, TopicWriter,
     },
-    settings::{List, Settings},
+    settings::{List, ListType, Settings},
     views::{parsed_command::ParsedCommand, View},
 };
 
@@ -46,12 +45,12 @@ impl Controller for RuntimeController {
         }
     }
 
-    fn close(&mut self) {
-        _ = self
-            .model
+    fn close(&mut self) -> std::io::Result<()> {
+        self.model
             .topic_writer
-            .write(self.model.topic_handler.get_topics());
-        _ = self.model.topic_writer.overwrite_old();
+            .write(self.model.topic_handler.get_topics())?;
+        self.model.topic_writer.overwrite_old()?;
+        Ok(())
     }
 }
 
@@ -117,7 +116,10 @@ impl RuntimeController {
     }
 
     fn set_app_state(&mut self, list: &List, settings: &mut Settings) -> CommandResult {
-        let new_topic_writer = Box::new(LocalFileHandler::new(list, settings.documents_path()));
+        let mut new_topic_writer: Box<dyn TopicWriter> = match list.list_type() {
+            ListType::Local => Box::new(LocalTopicWriter::new(list, settings.documents_path())),
+            ListType::Network => Box::new(NetworkTopicWriter::new(list)),
+        };
 
         match new_topic_writer.read_list() {
             Ok(topics) => {

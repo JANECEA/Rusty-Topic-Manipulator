@@ -1,3 +1,4 @@
+use crate::models::github_gist_topic_writer::GithubGistTopicWriter;
 use crate::{
     controllers::{controller_factory::ControllerFactory, Controller},
     models::{
@@ -27,6 +28,7 @@ impl MasterController {
         let mut topic_writer: Box<dyn TopicWriter> = match list.list_type() {
             ListType::Local => Box::new(LocalTopicWriter::new(list, &documents_path)),
             ListType::Network => Box::new(NetworkTopicWriter::new(list)),
+            ListType::GithubGist => Box::new(GithubGistTopicWriter::new(list)),
         };
 
         let topic_handler = TopicHandler::new(&topic_writer.read_list().unwrap());

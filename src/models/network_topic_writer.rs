@@ -2,6 +2,7 @@ use crate::{
     models::TopicWriter,
     settings::{BannerColor, List},
 };
+use anyhow::anyhow;
 use reqwest::{self, blocking::Client};
 use std::io;
 
@@ -15,7 +16,7 @@ pub struct NetworkTopicWriter {
 }
 
 impl TopicWriter for NetworkTopicWriter {
-    fn write(&self, list: &[String]) -> io::Result<()> {
+    fn write(&self, list: &[String]) -> anyhow::Result<()> {
         self.put_data(list, &self.endpoint_url)
     }
 
@@ -23,7 +24,7 @@ impl TopicWriter for NetworkTopicWriter {
         let _ = self.write(list);
     }
 
-    fn overwrite_old(&self) -> io::Result<()> {
+    fn close(&self) -> anyhow::Result<()> {
         let Some(list) = &self.old_list else {
             return Ok(());
         };
@@ -40,26 +41,20 @@ impl TopicWriter for NetworkTopicWriter {
         }
     }
 
-    fn read_list(&mut self) -> io::Result<Vec<String>> {
-        let response = self
-            .client
-            .get(&self.endpoint_url)
-            .send()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
+        let response = self.client.get(&self.endpoint_url).send()?;
 
         if response.status().is_success() {
-            let text = response
-                .text()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            let text = response.text()?;
 
             let list: Vec<String> = text.lines().map(|line| line.to_string()).collect();
             self.old_list = Some(list.clone());
             Ok(list)
         } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to read list: HTTP {}", response.status()),
-            ))
+            Err(anyhow!(format!(
+                "Failed to read list: HTTP {}",
+                response.status()
+            )))
         }
     }
 
@@ -87,7 +82,7 @@ impl NetworkTopicWriter {
         }
     }
 
-    fn put_data(&self, list: &[String], url: &str) -> std::io::Result<()> {
+    fn put_data(&self, list: &[String], url: &str) -> anyhow::Result<()> {
         let response = self
             .client
             .put(url)
@@ -98,10 +93,10 @@ impl NetworkTopicWriter {
         if response.status().is_success() {
             Ok(())
         } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to put data: HTTP {}", response.status()),
-            ))
+            Err(anyhow!(format!(
+                "Failed to put data: HTTP {}",
+                response.status()
+            )))
         }
     }
 

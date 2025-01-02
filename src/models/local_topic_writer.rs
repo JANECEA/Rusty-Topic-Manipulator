@@ -17,7 +17,7 @@ pub struct LocalTopicWriter {
 }
 
 impl TopicWriter for LocalTopicWriter {
-    fn write(&self, list: &[String]) -> io::Result<()> {
+    fn write(&self, list: &[String]) -> anyhow::Result<()> {
         let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
         for line in list {
             writeln!(file, "{}", line)?;
@@ -29,7 +29,7 @@ impl TopicWriter for LocalTopicWriter {
         _ = self.write(list);
     }
 
-    fn overwrite_old(&self) -> io::Result<()> {
+    fn close(&self) -> anyhow::Result<()> {
         fs::copy(&self.topics_file_path, &self.topics_file_old_path)?;
         Ok(())
     }
@@ -43,12 +43,18 @@ impl TopicWriter for LocalTopicWriter {
         }
     }
 
-    fn read_list(&mut self) -> io::Result<Vec<String>> {
+    fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
         self.check_source_exist();
 
-        io::BufReader::new(fs::File::open(&self.topics_file_path)?)
+        let file = fs::File::open(&self.topics_file_path)
+            .map_err(|e| anyhow::Error::new(e).context("Failed to open topics file"))?;
+
+        let reader = io::BufReader::new(file);
+
+        reader
             .lines()
-            .collect()
+            .collect::<Result<_, _>>()
+            .map_err(|e| anyhow::Error::new(e).context("Failed to read lines from topics file"))
     }
 
     fn get_banner(&self) -> &str {

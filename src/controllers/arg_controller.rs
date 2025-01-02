@@ -24,11 +24,11 @@ impl Controller for ArgController {
         }
     }
 
-    fn close(&mut self) -> std::io::Result<()> {
+    fn close(&mut self) -> anyhow::Result<()> {
         self.model
             .topic_writer
             .write(self.model.topic_handler.get_topics())?;
-        self.model.topic_writer.overwrite_old()?;
+        self.model.topic_writer.close()?;
         Ok(())
     }
 }

@@ -96,12 +96,13 @@ impl Settings {
 
     pub fn get_list_by_index(&mut self, index: usize) -> List {
         let mut list = self.parsed_settings.lists[index].clone();
-        list.banner_path = self
-            .path_to_settings_dir
-            .join(&list.banner_path)
-            .display()
-            .to_string();
-
+        if let ListType::Local = list.list_type {
+            list.banner_path = self
+                .path_to_settings_dir
+                .join(&list.banner_path)
+                .display()
+                .to_string();
+        }
         list
     }
 
@@ -148,6 +149,7 @@ pub struct List {
     #[serde(rename = "type")]
     list_type: ListType,
     path: String,
+    access_token: String,
 }
 
 impl Clone for List {
@@ -158,6 +160,7 @@ impl Clone for List {
             banner_color: self.banner_color.clone(),
             list_type: self.list_type.clone(),
             path: self.path.clone(),
+            access_token: self.access_token.clone(),
         }
     }
 }
@@ -181,6 +184,10 @@ impl List {
 
     pub fn path(&self) -> &str {
         &self.path
+    }
+
+    pub fn access_token(&self) -> &str {
+        &self.access_token
     }
 }
 
@@ -233,6 +240,7 @@ impl BannerColor {
 pub enum ListType {
     Local,
     Network,
+    GithubGist,
 }
 
 fn get_documents_dir() -> PathBuf {
@@ -254,6 +262,7 @@ fn get_default_settings() -> ParsedSettings {
             banner_color: BannerColor::White,
             list_type: ListType::Local,
             path: "newList.txt".to_string(),
+            access_token: String::new(),
         }],
     }
 }

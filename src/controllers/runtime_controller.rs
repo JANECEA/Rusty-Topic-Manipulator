@@ -1,3 +1,4 @@
+use crate::models::github_gist_topic_writer::GithubGistTopicWriter;
 use crate::{
     controllers::{
         commands::{CommandResult, RuntimeCommand, StrEnum},
@@ -45,11 +46,11 @@ impl Controller for RuntimeController {
         }
     }
 
-    fn close(&mut self) -> std::io::Result<()> {
+    fn close(&mut self) -> anyhow::Result<()> {
         self.model
             .topic_writer
             .write(self.model.topic_handler.get_topics())?;
-        self.model.topic_writer.overwrite_old()?;
+        self.model.topic_writer.close()?;
         Ok(())
     }
 }
@@ -119,12 +120,13 @@ impl RuntimeController {
         let mut new_topic_writer: Box<dyn TopicWriter> = match list.list_type() {
             ListType::Local => Box::new(LocalTopicWriter::new(list, settings.documents_path())),
             ListType::Network => Box::new(NetworkTopicWriter::new(list)),
+            ListType::GithubGist => Box::new(GithubGistTopicWriter::new(list)),
         };
 
         match new_topic_writer.read_list() {
             Ok(topics) => {
                 settings.set_open_in_list(list);
-                _ = self.model.topic_writer.overwrite_old();
+                _ = self.model.topic_writer.close();
 
                 self.model = Model::new(new_topic_writer, TopicHandler::new(topics.as_slice()));
                 CommandResult::Success

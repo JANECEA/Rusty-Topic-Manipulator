@@ -9,5 +9,5 @@ pub mod runtime_controller;
 pub trait Controller {
     fn run(&mut self, settings: &mut Settings);
 
-    fn close(&mut self) -> std::io::Result<()>;
+    fn close(&mut self) -> anyhow::Result<()>;
 }

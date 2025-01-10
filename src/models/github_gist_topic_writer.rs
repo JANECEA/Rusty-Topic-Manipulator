@@ -8,6 +8,8 @@ use serde_json::json;
 
 const GITHUB_API_PREFIX: &str = "https://api.github.com/gists";
 const GITHUB_API_HEADER: &str = "application/vnd.github.v3+json";
+const RAW_BASE_URL: &str = "https://gist.githubusercontent.com/";
+const DELIMITER: &str = "/raw/";
 
 pub struct GithubGistTopicWriter {
     token: String,
@@ -21,11 +23,10 @@ pub struct GithubGistTopicWriter {
 
 impl TopicWriter for GithubGistTopicWriter {
     fn write(&self, list: &[String]) -> anyhow::Result<()> {
-        let content = list.join("\n");
         let payload = json!({
             "files": {
                 self.file_name.clone(): {
-                    "content": content
+                    "content": list.join("\n")
                 }
             }
         });
@@ -111,23 +112,19 @@ impl GithubGistTopicWriter {
     }
 
     fn parse_gist_url(url: &str) -> Option<(String, String)> {
-        let base_url = "https://gist.githubusercontent.com/";
-        if let Some(base_idx) = url.find(base_url) {
-            let url_after_base = &url[base_idx + base_url.len()..];
-            if let Some(raw_idx) = url_after_base.find("/raw/") {
-                let mut gist_id = &url_after_base[..raw_idx];
-                let slash_index = gist_id.find('/').unwrap();
-                gist_id = &gist_id[(slash_index + 1)..];
+        let base_idx = url.find(RAW_BASE_URL)?;
+        let url_after_base = &url[base_idx + RAW_BASE_URL.len()..];
+        let raw_idx = url_after_base.find(DELIMITER)?;
 
-                let mut file_name = &url_after_base[raw_idx + 5..];
-                let slash_index = file_name.find('/').unwrap();
-                file_name = &file_name[(slash_index + 1)..];
+        let mut gist_id = &url_after_base[..raw_idx];
+        let slash_index = gist_id.find('/')?;
+        gist_id = &gist_id[(slash_index + 1)..];
 
-                return Some((gist_id.to_string(), file_name.to_string()));
-            }
-        }
+        let mut file_name = &url_after_base[raw_idx + DELIMITER.len()..];
+        let slash_index = file_name.find('/')?;
+        file_name = &file_name[(slash_index + 1)..];
 
-        None
+        Some((gist_id.to_string(), file_name.to_string()))
     }
 
     fn fetch_banner(client: &Client, banner_url: &str) -> String {

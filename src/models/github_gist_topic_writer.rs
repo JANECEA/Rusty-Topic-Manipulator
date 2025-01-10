@@ -3,18 +3,16 @@ use crate::{
     settings::{BannerColor, List},
 };
 use anyhow::anyhow;
-use octocrab::Octocrab;
 use reqwest::blocking::Client;
+use serde_json::json;
 use std::io;
-use tokio::runtime::Runtime;
 
 pub struct GithubGistTopicWriter {
-    octocrab: Octocrab,
+    token: String,
     client: Client,
     raw_list_url: String,
     gist_id: String,
     file_name: String,
-    token: String,
     banner: String,
     banner_color: BannerColor,
     old_list: Option<Vec<String>>,
@@ -22,21 +20,29 @@ pub struct GithubGistTopicWriter {
 
 impl TopicWriter for GithubGistTopicWriter {
     fn write(&self, list: &[String]) -> anyhow::Result<()> {
-        println!("{}", &self.gist_id);
-        println!("{}", &self.raw_list_url);
-        println!("{}", &self.file_name);
-        println!("{}", &self.token);
-        let response = Runtime::new()?.block_on(async {
-            self.octocrab
-                .gists()
-                .update(&self.gist_id)
-                .file(&self.file_name)
-                .with_content(list.join("\n"))
-                .send()
-                .await
-        })?;
+        let content = list.join("\n");
+        let payload = json!({
+            "files": {
+                self.file_name.clone(): {
+                    "content": content
+                }
+            }
+        });
 
-        Ok(())
+        let response = self
+            .client
+            .patch(format!("https://api.github.com/gists/{}", self.gist_id))
+            .header("Authorization", format!("token {}", self.token))
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "rust-gist-updater")
+            .json(&payload)
+            .send()?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(anyhow!("Failed to update gist: {}", response.status()))
+        }
     }
 
     fn try_write(&self, list: &[String]) {
@@ -50,20 +56,32 @@ impl TopicWriter for GithubGistTopicWriter {
     fn check_source_exist(&self) {}
 
     fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
+        let url = format!("https://api.github.com/gists/{}", self.gist_id);
+
         let response = self
             .client
-            .get(&self.raw_list_url)
+            .get(&url)
+            .header("Authorization", format!("token {}", self.token))
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "rust-gist-reader")
             .send()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
         if response.status().is_success() {
-            let text = response
-                .text()
+            let gist_data: serde_json::Value = response
+                .json()
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-            let list: Vec<String> = text.lines().map(|line| line.to_string()).collect();
-            self.old_list = Some(list.clone());
-            Ok(list)
+            if let Some(file_content) = gist_data["files"]
+                .get(&self.file_name)
+                .and_then(|file| file["content"].as_str())
+            {
+                let list: Vec<String> = file_content.lines().map(|line| line.to_string()).collect();
+                self.old_list = Some(list.clone());
+                Ok(list)
+            } else {
+                Err(anyhow!("File not found in gist response"))
+            }
         } else {
             Err(anyhow!(format!(
                 "Failed to read gist: HTTP {}",
@@ -71,6 +89,7 @@ impl TopicWriter for GithubGistTopicWriter {
             )))
         }
     }
+
     fn get_banner(&self) -> &str {
         self.banner.as_str()
     }
@@ -82,26 +101,17 @@ impl TopicWriter for GithubGistTopicWriter {
 
 impl GithubGistTopicWriter {
     pub fn new(list: &List) -> Self {
-        let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-        let octocrab = runtime.block_on(async {
-            Octocrab::builder()
-                .personal_token(list.access_token().to_string())
-                .build()
-                .unwrap()
-        });
-
         let (gist_id, file_name) = Self::parse_gist_url(list.path()).unwrap();
         let client = Client::new();
 
         Self {
+            token: list.access_token().to_string(),
             old_list: None,
             raw_list_url: list.path().to_string(),
             gist_id,
             file_name,
-            token: list.access_token().to_string(),
             banner: Self::fetch_banner(&client, list.banner_path()),
             banner_color: list.banner_color().clone(),
-            octocrab,
             client,
         }
     }
@@ -111,13 +121,13 @@ impl GithubGistTopicWriter {
         if let Some(base_idx) = url.find(base_url) {
             let url_after_base = &url[base_idx + base_url.len()..];
             if let Some(raw_idx) = url_after_base.find("/raw/") {
-                let mut gist_id = &url_after_base[..raw_idx]; // Gist ID is before '/raw/'
+                let mut gist_id = &url_after_base[..raw_idx];
                 let slash_index = gist_id.find('/').unwrap();
-                gist_id = &gist_id[(slash_index+1)..];
-                
-                let mut file_name = &url_after_base[raw_idx + 5..]; // File name comes after '/raw/'
+                gist_id = &gist_id[(slash_index + 1)..];
+
+                let mut file_name = &url_after_base[raw_idx + 5..];
                 let slash_index = file_name.find('/').unwrap();
-                file_name = &file_name[(slash_index+1)..];
+                file_name = &file_name[(slash_index + 1)..];
 
                 return Some((gist_id.to_string(), file_name.to_string()));
             }

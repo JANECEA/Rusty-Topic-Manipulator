@@ -6,7 +6,6 @@ pub mod topic_handler;
 pub mod undo_redo_handler;
 
 use crate::settings::BannerColor;
-use std::io;
 
 pub trait TopicWriter {
     fn write(&self, list: &[String]) -> anyhow::Result<()>;

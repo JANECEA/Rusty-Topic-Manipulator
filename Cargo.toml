@@ -13,5 +13,3 @@ serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12.11", features = ["blocking", "json"] }
 anyhow = "1.0.95"
-octocrab = "0.42.1"
-tokio = { version = "1.42.0", features = ["rt-multi-thread"] }

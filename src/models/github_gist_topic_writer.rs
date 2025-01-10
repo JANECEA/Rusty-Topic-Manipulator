@@ -5,12 +5,13 @@ use crate::{
 use anyhow::anyhow;
 use reqwest::blocking::Client;
 use serde_json::json;
-use std::io;
+
+const GITHUB_API_PREFIX: &str = "https://api.github.com/gists";
+const GITHUB_API_HEADER: &str = "application/vnd.github.v3+json";
 
 pub struct GithubGistTopicWriter {
     token: String,
     client: Client,
-    raw_list_url: String,
     gist_id: String,
     file_name: String,
     banner: String,
@@ -31,9 +32,9 @@ impl TopicWriter for GithubGistTopicWriter {
 
         let response = self
             .client
-            .patch(format!("https://api.github.com/gists/{}", self.gist_id))
+            .patch(format!("{GITHUB_API_PREFIX}/{}", self.gist_id))
             .header("Authorization", format!("token {}", self.token))
-            .header("Accept", "application/vnd.github.v3+json")
+            .header("Accept", GITHUB_API_HEADER)
             .header("User-Agent", "rust-gist-updater")
             .json(&payload)
             .send()?;
@@ -56,37 +57,31 @@ impl TopicWriter for GithubGistTopicWriter {
     fn check_source_exist(&self) {}
 
     fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
-        let url = format!("https://api.github.com/gists/{}", self.gist_id);
-
         let response = self
             .client
-            .get(&url)
+            .get(format!("{GITHUB_API_PREFIX}/{}", self.gist_id))
             .header("Authorization", format!("token {}", self.token))
-            .header("Accept", "application/vnd.github.v3+json")
+            .header("Accept", GITHUB_API_HEADER)
             .header("User-Agent", "rust-gist-reader")
-            .send()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .send()?;
 
-        if response.status().is_success() {
-            let gist_data: serde_json::Value = response
-                .json()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
-
-            if let Some(file_content) = gist_data["files"]
-                .get(&self.file_name)
-                .and_then(|file| file["content"].as_str())
-            {
-                let list: Vec<String> = file_content.lines().map(|line| line.to_string()).collect();
-                self.old_list = Some(list.clone());
-                Ok(list)
-            } else {
-                Err(anyhow!("File not found in gist response"))
-            }
-        } else {
-            Err(anyhow!(format!(
+        if !response.status().is_success() {
+            return Err(anyhow!(format!(
                 "Failed to read gist: HTTP {}",
                 response.status()
-            )))
+            )));
+        }
+
+        let gist_data: serde_json::Value = response.json()?;
+        if let Some(file_content) = gist_data["files"]
+            .get(&self.file_name)
+            .and_then(|file| file["content"].as_str())
+        {
+            let list: Vec<String> = file_content.lines().map(|line| line.to_string()).collect();
+            self.old_list = Some(list.clone());
+            Ok(list)
+        } else {
+            Err(anyhow!("File not found in gist response"))
         }
     }
 
@@ -107,7 +102,6 @@ impl GithubGistTopicWriter {
         Self {
             token: list.access_token().to_string(),
             old_list: None,
-            raw_list_url: list.path().to_string(),
             gist_id,
             file_name,
             banner: Self::fetch_banner(&client, list.banner_path()),

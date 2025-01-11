@@ -1,9 +1,9 @@
-use crate::models::github_gist_topic_writer::GithubGistTopicWriter;
 use crate::{
     controllers::{controller_factory::ControllerFactory, Controller},
     models::{
-        local_topic_writer::LocalTopicWriter, model::Model,
-        network_topic_writer::NetworkTopicWriter, topic_handler::TopicHandler, TopicWriter,
+        github_gist_topic_writer::GithubGistTopicWriter, local_topic_writer::LocalTopicWriter,
+        model::Model, network_topic_writer::NetworkTopicWriter, topic_handler::TopicHandler,
+        TopicWriter,
     },
     settings::{ListType, Settings},
     views::View,
@@ -21,9 +21,11 @@ impl MasterController {
         view: Box<dyn View>,
         controller_factory: impl ControllerFactory,
     ) -> Self {
-        let documents_path = settings.documents_path().to_owned();
-        let list_name = settings.open_in().to_owned();
-        let list = &settings.get_list(&list_name).unwrap();
+        let documents_path = settings.documents_path().clone();
+        let list_name = settings.open_in().to_string();
+        let list = &settings
+            .get_list(&list_name)
+            .unwrap_or_else(|| settings.get_list_by_index(0));
 
         let mut topic_writer: Box<dyn TopicWriter> = match list.list_type() {
             ListType::Local => Box::new(LocalTopicWriter::new(list, &documents_path)),
@@ -31,7 +33,9 @@ impl MasterController {
             ListType::GithubGist => Box::new(GithubGistTopicWriter::new(list)),
         };
 
-        let topic_handler = TopicHandler::new(&topic_writer.read_list().unwrap());
+        let topic_handler =
+            TopicHandler::new(&topic_writer.read_list().expect("Could not read topics."));
+
         Self {
             settings,
             sub_controller: controller_factory

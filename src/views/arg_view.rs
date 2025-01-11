@@ -1,7 +1,6 @@
 use crate::{
     settings::{BannerColor, List},
-    views::parsed_command::ParsedCommand,
-    views::View,
+    views::{parsed_command::ParsedCommand, View},
 };
 use std::io::Write;
 

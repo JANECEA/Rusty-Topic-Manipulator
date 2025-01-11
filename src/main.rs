@@ -8,7 +8,7 @@ use controllers::{
     master_controller::MasterController,
 };
 use settings::Settings;
-use std::io;
+use std::io::{self, BufReader};
 use views::{arg_view::ArgConsoleView, runtime_view::RuntimeConsoleView};
 
 fn main() {
@@ -22,7 +22,7 @@ fn main() {
     let mut master_controller = if args.is_empty() {
         MasterController::new(
             settings,
-            Box::new(RuntimeConsoleView::new(io::BufReader::new(io::stdin()))),
+            Box::new(RuntimeConsoleView::new(BufReader::new(io::stdin()))),
             RuntimeControllerFactory::new(),
         )
     } else {

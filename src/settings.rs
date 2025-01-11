@@ -23,7 +23,7 @@ impl Settings {
         documents_path: PathBuf,
         default_settings_used: bool,
     ) -> Self {
-        let previous_open_in = parsed_settings.open_in.to_owned();
+        let previous_open_in = parsed_settings.open_in.clone();
         let path_to_settings_dir = documents_path.join(SETTINGS_DIR_NAME);
         let path_to_settings_file = path_to_settings_dir.join(SETTINGS_FILE_NAME);
         Self {
@@ -38,16 +38,16 @@ impl Settings {
 
     pub fn get_settings() -> Result<Settings> {
         let documents_dir = get_documents_dir();
-        let json_file_path = documents_dir
+        let settings_file_path = documents_dir
             .join(SETTINGS_DIR_NAME)
             .join(SETTINGS_FILE_NAME);
 
-        let default_settings_used = !json_file_path.is_file();
+        let default_settings_used = !settings_file_path.is_file();
         Ok(Settings::new(
             if default_settings_used {
-                get_default_settings()
+                ParsedSettings::default(&settings_file_path)
             } else {
-                serde_json::from_reader(File::open(json_file_path)?)?
+                serde_json::from_reader(File::open(settings_file_path)?)?
             },
             documents_dir,
             default_settings_used,
@@ -58,9 +58,8 @@ impl Settings {
         if !self.settings_changed() {
             return Ok(());
         }
-        let file = File::create(&self.path_to_settings_file)?;
-        serde_json::to_writer_pretty(file, &self.parsed_settings)?;
-        Ok(())
+        self.parsed_settings
+            .save_settings(&self.path_to_settings_file)
     }
 
     fn settings_changed(&self) -> bool {
@@ -138,6 +137,31 @@ struct ParsedSettings {
     open_in: String,
     open_last: bool,
     lists: Vec<List>,
+}
+
+impl ParsedSettings {
+    fn default(path_to_settings_file: &PathBuf) -> Self {
+        let settings = ParsedSettings {
+            open_in: "New List".to_string(),
+            open_last: true,
+            lists: vec![List {
+                name: "New List".to_string(),
+                banner_path: "NewListBanner.txt".to_string(),
+                banner_color: BannerColor::White,
+                list_type: ListType::Local,
+                path: "newList.txt".to_string(),
+                access_token: String::new(),
+            }],
+        };
+        _ = settings.save_settings(path_to_settings_file);
+        settings
+    }
+
+    fn save_settings(&self, path_to_settings_file: &PathBuf) -> Result<()> {
+        let file = File::create(path_to_settings_file)?;
+        serde_json::to_writer_pretty(file, &self)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -249,20 +273,5 @@ fn get_documents_dir() -> PathBuf {
             .document_dir()
             .map_or_else(|| PathBuf::from("/"), PathBuf::from),
         None => PathBuf::from("/"),
-    }
-}
-
-fn get_default_settings() -> ParsedSettings {
-    ParsedSettings {
-        open_in: "New List".to_string(),
-        open_last: true,
-        lists: vec![List {
-            name: "New List".to_string(),
-            banner_path: "NewListBanner.txt".to_string(),
-            banner_color: BannerColor::White,
-            list_type: ListType::Local,
-            path: "newList.txt".to_string(),
-            access_token: String::new(),
-        }],
     }
 }

@@ -1,12 +1,12 @@
-use crate::models::github_gist_topic_writer::GithubGistTopicWriter;
 use crate::{
     controllers::{
         commands::{CommandResult, RuntimeCommand, StrEnum},
         Controller,
     },
     models::{
-        local_topic_writer::LocalTopicWriter, model::Model,
-        network_topic_writer::NetworkTopicWriter, topic_handler::TopicHandler, TopicWriter,
+        github_gist_topic_writer::GithubGistTopicWriter, local_topic_writer::LocalTopicWriter,
+        model::Model, network_topic_writer::NetworkTopicWriter, topic_handler::TopicHandler,
+        TopicWriter,
     },
     settings::{List, ListType, Settings},
     views::{parsed_command::ParsedCommand, View},

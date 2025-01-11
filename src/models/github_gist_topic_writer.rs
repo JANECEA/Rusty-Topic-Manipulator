@@ -97,7 +97,9 @@ impl TopicWriter for GithubGistTopicWriter {
 
 impl GithubGistTopicWriter {
     pub fn new(list: &List) -> Self {
-        let (gist_id, file_name) = Self::parse_gist_url(list.path()).unwrap();
+        let (gist_id, file_name) =
+            Self::parse_gist_url(list.path()).expect("Incorrect gist url format.");
+
         let client = Client::new();
 
         Self {

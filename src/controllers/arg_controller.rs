@@ -1,14 +1,12 @@
 use crate::{
     controllers::{
-        commands::{ArgCommand, CommandResult},
+        commands::{ArgCommand, CommandResult, StrEnum},
         Controller,
     },
     models::model::Model,
     settings::{BannerColor, Settings},
     views::{parsed_command::ParsedCommand, View},
 };
-
-use super::commands::StrEnum;
 
 pub struct ArgController {
     model: Model,
@@ -17,7 +15,7 @@ pub struct ArgController {
 
 impl Controller for ArgController {
     fn run(&mut self, settings: &mut Settings) {
-        let parsed_command = self.view.get_input().unwrap();
+        let parsed_command = self.view.get_input().expect("Incorrect command format.");
 
         if let CommandResult::Fail(error_message) = self.pass_command(&parsed_command, settings) {
             self.view.print_error(&error_message);

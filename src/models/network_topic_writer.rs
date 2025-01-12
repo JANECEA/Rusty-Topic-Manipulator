@@ -91,15 +91,6 @@ impl NetworkTopicWriter {
         }
     }
 
-    fn check_source_exist(&self) {
-        let response = self.client.head(&self.endpoint_url).send();
-
-        match response {
-            Ok(resp) if resp.status().is_success() => (),
-            _ => panic!("Source does not exist or is inaccessible."),
-        }
-    }
-
     fn fetch_banner(banner_url: &str) -> String {
         let client = Client::new();
         client

@@ -32,15 +32,6 @@ impl TopicWriter for NetworkTopicWriter {
         self.put_data(list, &self.backup_url)
     }
 
-    fn check_source_exist(&self) {
-        let response = self.client.head(&self.endpoint_url).send();
-
-        match response {
-            Ok(resp) if resp.status().is_success() => (),
-            _ => panic!("Source does not exist or is inaccessible."),
-        }
-    }
-
     fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
         let response = self.client.get(&self.endpoint_url).send()?;
 
@@ -97,6 +88,15 @@ impl NetworkTopicWriter {
                 "Failed to put data: HTTP {}",
                 response.status()
             )))
+        }
+    }
+
+    fn check_source_exist(&self) {
+        let response = self.client.head(&self.endpoint_url).send();
+
+        match response {
+            Ok(resp) if resp.status().is_success() => (),
+            _ => panic!("Source does not exist or is inaccessible."),
         }
     }
 

@@ -21,14 +21,14 @@ impl Controller for RuntimeController {
     fn run(&mut self, settings: &mut Settings) {
         loop {
             if self.model.topic_handler.should_rerender() {
-                self.model
-                    .topic_writer
-                    .try_write(self.model.topic_handler.get_topics());
                 self.view.render(
                     self.model.topic_handler.get_topics(),
                     self.model.topic_writer.get_banner(),
                     self.model.topic_writer.get_banner_color(),
                 );
+                self.model
+                    .topic_writer
+                    .try_write(self.model.topic_handler.get_topics());
             }
             let Some(command) = self.view.get_input() else {
                 break;

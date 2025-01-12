@@ -34,27 +34,16 @@ impl TopicWriter for LocalTopicWriter {
         Ok(())
     }
 
-    fn check_source_exist(&self) {
-        if !&self.topics_file_dir.exists() {
-            fs::create_dir_all(&self.topics_file_dir).expect("Failed to create directory");
-        }
-        if !&self.topics_file_path.exists() {
-            fs::File::create(&self.topics_file_path).expect("Failed to create file");
-        }
-    }
-
     fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
         self.check_source_exist();
-
-        let file = fs::File::open(&self.topics_file_path)
-            .map_err(|e| anyhow::Error::new(e).context("Failed to open topics file"))?;
-
+        let file = fs::File::open(&self.topics_file_path)?;
         let reader = io::BufReader::new(file);
 
-        reader
-            .lines()
-            .collect::<Result<_, _>>()
-            .map_err(|e| anyhow::Error::new(e).context("Failed to read lines from topics file"))
+        let mut vec = Vec::new();
+        for line in reader.lines() {
+            vec.push(line?);
+        }
+        Ok(vec)
     }
 
     fn get_banner(&self) -> &str {
@@ -82,5 +71,14 @@ impl LocalTopicWriter {
 
     fn set_banner(banner_path: &str) -> String {
         fs::read_to_string(banner_path).unwrap_or_default()
+    }
+
+    fn check_source_exist(&self) {
+        if !&self.topics_file_dir.exists() {
+            fs::create_dir_all(&self.topics_file_dir).expect("Failed to create directory");
+        }
+        if !&self.topics_file_path.exists() {
+            fs::File::create(&self.topics_file_path).expect("Failed to create file");
+        }
     }
 }

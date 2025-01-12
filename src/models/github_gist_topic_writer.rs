@@ -2,7 +2,7 @@ use crate::{
     models::TopicWriter,
     settings::{BannerColor, List},
 };
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use reqwest::blocking::Client;
 use serde_json::json;
 
@@ -54,8 +54,6 @@ impl TopicWriter for GithubGistTopicWriter {
     fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }
-
-    fn check_source_exist(&self) {}
 
     fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
         self.read_gist(&self.gist_id, &self.file_name)

@@ -14,8 +14,6 @@ pub trait TopicWriter {
 
     fn close(&self) -> anyhow::Result<()>;
 
-    fn check_source_exist(&self);
-
     fn read_list(&mut self) -> anyhow::Result<Vec<String>>;
 
     fn get_banner(&self) -> &str;

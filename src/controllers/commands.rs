@@ -50,6 +50,7 @@ pub enum RuntimeCommand {
     Undo,
     Redo,
     Switch,
+    Refresh,
     Exit,
 }
 
@@ -69,6 +70,7 @@ impl StrEnum for RuntimeCommand {
             "undo" => Some(RuntimeCommand::Undo),
             "redo" => Some(RuntimeCommand::Redo),
             "switch" => Some(RuntimeCommand::Switch),
+            "refresh" => Some(RuntimeCommand::Refresh),
             "exit" => Some(RuntimeCommand::Exit),
             _ => None,
         }
@@ -76,8 +78,9 @@ impl StrEnum for RuntimeCommand {
 }
 
 impl RuntimeCommand {
-    pub const ALL_COMMANDS: [&'static str; 7] =
-        ["add", "pick", "remove", "undo", "redo", "switch", "exit"];
+    pub const ALL_COMMANDS: [&'static str; 8] = [
+        "add", "pick", "remove", "undo", "redo", "switch", "refresh", "exit",
+    ];
 }
 
 pub enum CommandResult {

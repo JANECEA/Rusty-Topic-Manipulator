@@ -39,7 +39,7 @@ impl MasterController {
         Self {
             settings,
             sub_controller: controller_factory
-                .get_controller(Model::new(topic_writer, topic_handler), view),
+                .get_controller(Model::new(topic_writer, topic_handler, &list_name), view),
         }
     }
 

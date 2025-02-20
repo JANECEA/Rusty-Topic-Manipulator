@@ -76,6 +76,9 @@ impl RuntimeController {
                 RuntimeCommand::Undo => self.model.topic_handler.undo(),
                 RuntimeCommand::Redo => self.model.topic_handler.redo(),
                 RuntimeCommand::Switch => self.switch_list(settings),
+                RuntimeCommand::Refresh => {
+                    self.set_app_state(&settings.get_list(&self.model.list_name).unwrap(), settings)
+                }
                 RuntimeCommand::Exit => self.model.topic_handler.exit(),
             },
             None => CommandResult::Fail(format!("Unknown command: {}", parsed_command.command())),
@@ -128,7 +131,11 @@ impl RuntimeController {
                 settings.set_open_in_list(list);
                 _ = self.model.topic_writer.close();
 
-                self.model = Model::new(new_topic_writer, TopicHandler::new(topics.as_slice()));
+                self.model = Model::new(
+                    new_topic_writer,
+                    TopicHandler::new(topics.as_slice()),
+                    list.name(),
+                );
                 CommandResult::Success
             }
             Err(error) => CommandResult::Fail(error.to_string()),

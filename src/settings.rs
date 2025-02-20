@@ -2,7 +2,10 @@ use crate::controllers::commands::CommandResult;
 use anyhow::Result;
 use crossterm::style::Color;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, path::PathBuf};
+use std::{
+    fs::{self, File},
+    path::PathBuf,
+};
 
 pub const SETTINGS_DIR_NAME: &str = "RustyTopicManipulator";
 pub const SETTINGS_FILE_NAME: &str = "settings.json";
@@ -141,20 +144,44 @@ struct ParsedSettings {
 
 impl ParsedSettings {
     fn default(path_to_settings_file: &PathBuf) -> Self {
+        let banner_file_name = "NewListBanner.txt";
+        let default_banner_path = path_to_settings_file
+            .parent()
+            .unwrap()
+            .join(banner_file_name);
+
         let settings = ParsedSettings {
             open_in: "New List".to_string(),
             open_last: true,
             lists: vec![List {
                 name: "New List".to_string(),
-                banner_path: "NewListBanner.txt".to_string(),
+                banner_path: banner_file_name.to_string(),
                 banner_color: BannerColor::White,
                 list_type: ListType::Local,
                 path: "newList.txt".to_string(),
                 access_token: String::new(),
             }],
         };
-        _ = settings.save_settings(path_to_settings_file);
         settings
+            .save_settings(path_to_settings_file)
+            .expect("Could not save settings.");
+        Self::save_default_banner(&default_banner_path).expect("Could not save default banner.");
+        settings
+    }
+
+    fn save_default_banner(path: &PathBuf) -> std::io::Result<()> {
+        let banner = r"
+/==============================================\
+||                                            ||
+||   _   _                 _     _     _      ||
+||  | \ | | _____      __ | |   (_)___| |_    ||
+||  |  \| |/ _ \ \ /\ / / | |   | / __| __|   ||
+||  | |\  |  __/\ V  V /  | |___| \__ \ |_    ||
+||  |_| \_|\___| \_/\_/   |_____|_|___/\__|   ||
+||                                            ||
+\==============================================/
+";
+        fs::write(path, banner)
     }
 
     fn save_settings(&self, path_to_settings_file: &PathBuf) -> Result<()> {

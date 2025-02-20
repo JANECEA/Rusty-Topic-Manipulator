@@ -18,7 +18,6 @@ pub struct GithubGistTopicWriter {
     file_name: String,
     banner: String,
     banner_color: BannerColor,
-    old_list: Option<Vec<String>>,
 }
 
 impl TopicWriter for GithubGistTopicWriter {
@@ -59,7 +58,6 @@ impl TopicWriter for GithubGistTopicWriter {
         self.read_gist(&self.gist_id, &self.file_name)
             .map(|content| {
                 let list: Vec<String> = content.lines().map(|line| line.to_string()).collect();
-                self.old_list = Some(list.clone());
                 Ok(list)
             })?
     }
@@ -81,7 +79,6 @@ impl GithubGistTopicWriter {
 
         let mut writer = Self {
             token: list.access_token().to_string(),
-            old_list: None,
             gist_id,
             file_name,
             banner: String::default(),

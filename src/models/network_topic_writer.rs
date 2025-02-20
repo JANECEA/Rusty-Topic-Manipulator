@@ -8,9 +8,7 @@ use std::io;
 
 pub struct NetworkTopicWriter {
     client: Client,
-    old_list: Option<Vec<String>>,
     endpoint_url: String,
-    backup_url: String,
     banner: String,
     banner_color: BannerColor,
 }
@@ -25,11 +23,7 @@ impl TopicWriter for NetworkTopicWriter {
     }
 
     fn close(&self) -> anyhow::Result<()> {
-        let Some(list) = &self.old_list else {
-            return Ok(());
-        };
-
-        self.put_data(list, &self.backup_url)
+        Ok(())
     }
 
     fn read_list(&mut self) -> anyhow::Result<Vec<String>> {
@@ -37,9 +31,7 @@ impl TopicWriter for NetworkTopicWriter {
 
         if response.status().is_success() {
             let text = response.text()?;
-
             let list: Vec<String> = text.lines().map(|line| line.to_string()).collect();
-            self.old_list = Some(list.clone());
             Ok(list)
         } else {
             Err(anyhow!(format!(
@@ -61,13 +53,10 @@ impl TopicWriter for NetworkTopicWriter {
 impl NetworkTopicWriter {
     pub fn new(list: &List) -> Self {
         let endpoint_url = list.path().to_string();
-        let backup_url = format!("{}.old", list.path());
 
         Self {
             client: Client::new(),
-            old_list: None,
             endpoint_url,
-            backup_url,
             banner: Self::fetch_banner(list.banner_path()),
             banner_color: list.banner_color().clone(),
         }

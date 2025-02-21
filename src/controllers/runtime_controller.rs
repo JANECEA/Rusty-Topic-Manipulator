@@ -88,7 +88,7 @@ impl RuntimeController {
                     .remove_topics(parsed_command.args()),
                 RuntimeCommand::Undo => self.model.topic_handler.undo(),
                 RuntimeCommand::Redo => self.model.topic_handler.redo(),
-                RuntimeCommand::Switch => self.switch_list(settings),
+                RuntimeCommand::Switch => self.switch_list(settings, parsed_command.args()),
                 RuntimeCommand::Refresh => {
                     self.set_app_state(&settings.get_list(&self.model.list_name).unwrap(), settings)
                 }
@@ -112,13 +112,20 @@ impl RuntimeController {
         CommandResult::Success
     }
 
-    fn switch_list(&mut self, settings: &mut Settings) -> CommandResult {
-        self.view.print_lists(settings.lists());
-        match self.view.get_input() {
+    fn switch_list(&mut self, settings: &mut Settings, args: &[String]) -> CommandResult {
+        let input = if args.len() == 1 {
+            Some(ParsedCommand::parse_from_args(args))
+        } else if args.is_empty() {
+            self.view.print_lists(settings.lists());
+            self.view.get_input()
+        } else {
+            return CommandResult::Fail("Incorrect number of arguments.".to_string());
+        };
+
+        match input {
+            Some(parsed_command) if parsed_command.is_empty() => CommandResult::Success,
             Some(parsed_command) => {
-                if parsed_command.is_empty() {
-                    CommandResult::Success
-                } else if let Some(list) = settings.get_list(parsed_command.command()) {
+                if let Some(list) = settings.get_list(parsed_command.command()) {
                     self.set_app_state(&list, settings);
                     CommandResult::Success
                 } else {

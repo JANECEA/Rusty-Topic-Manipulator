@@ -4,13 +4,14 @@ pub mod model;
 pub mod network_topic_writer;
 pub mod topic_handler;
 pub mod undo_redo_handler;
+pub mod writer_manager;
 
 use crate::settings::BannerColor;
 
 pub trait TopicWriter {
-    fn write(&self, list: &[String]) -> anyhow::Result<()>;
+    fn write(&mut self, list: &[String]) -> anyhow::Result<()>;
 
-    fn try_write(&self, list: &[String]);
+    fn try_write(&mut self, list: &[String]);
 
     fn close(&self) -> anyhow::Result<()>;
 

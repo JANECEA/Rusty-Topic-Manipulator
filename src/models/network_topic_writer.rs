@@ -14,11 +14,11 @@ pub struct NetworkTopicWriter {
 }
 
 impl TopicWriter for NetworkTopicWriter {
-    fn write(&self, list: &[String]) -> anyhow::Result<()> {
+    fn write(&mut self, list: &[String]) -> anyhow::Result<()> {
         self.put_data(list, &self.endpoint_url)
     }
 
-    fn try_write(&self, list: &[String]) {
+    fn try_write(&mut self, list: &[String]) {
         let _ = self.write(list);
     }
 

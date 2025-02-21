@@ -3,7 +3,7 @@ use crate::{
         commands::{ArgCommand, CommandResult, StrEnum},
         Controller,
     },
-    models::model::Model,
+    models::{model::Model, TopicWriter},
     settings::{BannerColor, Settings},
     views::{parsed_command::ParsedCommand, View},
 };

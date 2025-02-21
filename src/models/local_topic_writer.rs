@@ -17,7 +17,7 @@ pub struct LocalTopicWriter {
 }
 
 impl TopicWriter for LocalTopicWriter {
-    fn write(&self, list: &[String]) -> anyhow::Result<()> {
+    fn write(&mut self, list: &[String]) -> anyhow::Result<()> {
         let mut file: fs::File = fs::File::create(&self.topics_file_path)?;
         for line in list {
             writeln!(file, "{}", line)?;
@@ -25,7 +25,7 @@ impl TopicWriter for LocalTopicWriter {
         Ok(())
     }
 
-    fn try_write(&self, list: &[String]) {
+    fn try_write(&mut self, list: &[String]) {
         _ = self.write(list);
     }
 

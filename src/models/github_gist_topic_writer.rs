@@ -21,7 +21,7 @@ pub struct GithubGistTopicWriter {
 }
 
 impl TopicWriter for GithubGistTopicWriter {
-    fn write(&self, list: &[String]) -> anyhow::Result<()> {
+    fn write(&mut self, list: &[String]) -> anyhow::Result<()> {
         let payload = json!({
             "files": {
                 self.file_name.clone(): {
@@ -46,7 +46,7 @@ impl TopicWriter for GithubGistTopicWriter {
         }
     }
 
-    fn try_write(&self, list: &[String]) {
+    fn try_write(&mut self, list: &[String]) {
         let _ = self.write(list);
     }
 

@@ -1,7 +1,7 @@
-use crate::models::{topic_handler::TopicHandler, TopicWriter};
+use crate::models::{topic_handler::TopicHandler, writer_manager::WriterManager, TopicWriter};
 
 pub struct Model {
-    pub topic_writer: Box<dyn TopicWriter>,
+    pub topic_writer: WriterManager,
     pub topic_handler: TopicHandler,
     pub list_name: String,
 }
@@ -13,7 +13,7 @@ impl Model {
         list_name: &str,
     ) -> Self {
         Self {
-            topic_writer,
+            topic_writer: WriterManager::new(topic_writer),
             topic_handler,
             list_name: list_name.to_string(),
         }

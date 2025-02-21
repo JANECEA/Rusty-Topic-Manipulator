@@ -46,10 +46,6 @@ impl TopicWriter for GithubGistTopicWriter {
         }
     }
 
-    fn try_write(&mut self, list: &[String]) {
-        let _ = self.write(list);
-    }
-
     fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }

@@ -25,10 +25,6 @@ impl TopicWriter for LocalTopicWriter {
         Ok(())
     }
 
-    fn try_write(&mut self, list: &[String]) {
-        _ = self.write(list);
-    }
-
     fn close(&self) -> anyhow::Result<()> {
         fs::copy(&self.topics_file_path, &self.topics_file_old_path)?;
         Ok(())

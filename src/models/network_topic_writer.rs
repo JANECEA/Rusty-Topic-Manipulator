@@ -18,10 +18,6 @@ impl TopicWriter for NetworkTopicWriter {
         self.put_data(list, &self.endpoint_url)
     }
 
-    fn try_write(&mut self, list: &[String]) {
-        let _ = self.write(list);
-    }
-
     fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }

@@ -10,8 +10,6 @@ use crate::settings::BannerColor;
 pub trait TopicWriter {
     fn write(&mut self, list: &[String]) -> anyhow::Result<()>;
 
-    fn try_write(&mut self, list: &[String]);
-
     fn close(&self) -> anyhow::Result<()>;
 
     fn read_list(&mut self) -> anyhow::Result<Vec<String>>;

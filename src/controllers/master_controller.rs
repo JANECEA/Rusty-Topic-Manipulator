@@ -45,8 +45,7 @@ impl MasterController {
 
     pub fn close(&mut self) -> Result<()> {
         self.sub_controller.close()?;
-        self.settings.save_settings()?;
-        Ok(())
+        self.settings.save_settings()
     }
 
     pub fn run(&mut self) {

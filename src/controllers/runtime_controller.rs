@@ -16,23 +16,20 @@ pub struct RuntimeController {
     model: Model,
     view: Box<dyn View>,
     las_write_succeeded: bool,
+    should_rerender: bool,
 }
 
 impl Controller for RuntimeController {
     fn run(&mut self, settings: &mut Settings) {
-        self.view.render(
-            self.model.topic_handler.get_topics(),
-            self.model.topic_writer.get_banner(),
-            self.model.topic_writer.get_banner_color(),
-        );
-
         loop {
-            if !self.las_write_succeeded || self.model.topic_handler.is_modified() {
+            if self.should_rerender() {
                 self.view.render(
                     self.model.topic_handler.get_topics(),
                     self.model.topic_writer.get_banner(),
                     self.model.topic_writer.get_banner_color(),
                 );
+            }
+            if self.model.topic_handler.is_modified() {
                 self.las_write_succeeded = self
                     .model
                     .topic_writer
@@ -72,6 +69,7 @@ impl RuntimeController {
             model,
             view,
             las_write_succeeded: true,
+            should_rerender: true,
         }
     }
 
@@ -146,14 +144,25 @@ impl RuntimeController {
                 settings.set_open_in_list(list);
                 _ = self.model.topic_writer.close();
 
-                self.model = Model::new(
+                self.set_model(Model::new(
                     new_topic_writer,
                     TopicHandler::new(topics.as_slice()),
                     list.name(),
-                );
+                ));
                 CommandResult::Success
             }
             Err(error) => CommandResult::Fail(error.to_string()),
         }
+    }
+
+    fn set_model(&mut self, model: Model) {
+        self.should_rerender = true;
+        self.model = model;
+    }
+
+    fn should_rerender(&mut self) -> bool {
+        let old = self.should_rerender;
+        self.should_rerender = false;
+        old || self.model.topic_handler.is_modified()
     }
 }

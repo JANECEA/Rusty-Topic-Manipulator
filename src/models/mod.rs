@@ -4,7 +4,6 @@ pub mod model;
 pub mod network_topic_writer;
 pub mod topic_handler;
 pub mod undo_redo_handler;
-pub mod writer_manager;
 
 use crate::settings::BannerColor;
 

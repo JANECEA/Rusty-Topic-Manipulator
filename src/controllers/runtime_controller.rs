@@ -15,20 +15,29 @@ use crate::{
 pub struct RuntimeController {
     model: Model,
     view: Box<dyn View>,
+    las_write_succeeded: bool,
 }
 
 impl Controller for RuntimeController {
     fn run(&mut self, settings: &mut Settings) {
+        self.view.render(
+            self.model.topic_handler.get_topics(),
+            self.model.topic_writer.get_banner(),
+            self.model.topic_writer.get_banner_color(),
+        );
+
         loop {
-            if self.model.topic_handler.should_rerender() {
+            if !self.las_write_succeeded || self.model.topic_handler.is_modified() {
                 self.view.render(
                     self.model.topic_handler.get_topics(),
                     self.model.topic_writer.get_banner(),
                     self.model.topic_writer.get_banner_color(),
                 );
-                self.model
+                self.las_write_succeeded = self
+                    .model
                     .topic_writer
-                    .try_write(self.model.topic_handler.get_topics());
+                    .write(self.model.topic_handler.get_topics())
+                    .is_ok();
             }
             let Some(command) = self.view.get_input() else {
                 break;
@@ -47,17 +56,23 @@ impl Controller for RuntimeController {
     }
 
     fn close(&mut self) -> anyhow::Result<()> {
+        if self.las_write_succeeded && !self.model.topic_handler.is_modified() {
+            return Ok(());
+        }
         self.model
             .topic_writer
             .write(self.model.topic_handler.get_topics())?;
-        self.model.topic_writer.close()?;
-        Ok(())
+        self.model.topic_writer.close()
     }
 }
 
 impl RuntimeController {
     pub fn new(model: Model, view: Box<dyn View>) -> Self {
-        Self { model, view }
+        Self {
+            model,
+            view,
+            las_write_succeeded: true,
+        }
     }
 
     fn pass_command(

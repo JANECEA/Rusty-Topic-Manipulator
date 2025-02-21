@@ -4,7 +4,7 @@ use rand::{rngs::ThreadRng, Rng};
 pub struct TopicHandler {
     topic_history: UndoRedoHandler<Vec<String>>,
     state: Vec<String>,
-    has_changed: bool,
+    is_modified: bool,
     can_continue: bool,
     chosen_topic: Option<(String, usize)>,
     rng: ThreadRng,
@@ -16,7 +16,7 @@ impl TopicHandler {
         undo_redo_handler.add_new_node(state.to_vec());
         TopicHandler {
             state: state.to_vec(),
-            has_changed: true,
+            is_modified: false,
             can_continue: true,
             rng: rand::thread_rng(),
             topic_history: undo_redo_handler,
@@ -24,9 +24,9 @@ impl TopicHandler {
         }
     }
 
-    pub fn should_rerender(&mut self) -> bool {
-        let changed: bool = self.has_changed;
-        self.has_changed = false;
+    pub fn is_modified(&mut self) -> bool {
+        let changed = self.is_modified;
+        self.is_modified = false;
         changed
     }
 
@@ -77,7 +77,7 @@ impl TopicHandler {
         }
         self.state.clone_from(&new_topics);
         self.topic_history.add_new_node(new_topics);
-        self.has_changed = true;
+        self.is_modified = true;
         CommandResult::Success
     }
 
@@ -89,7 +89,7 @@ impl TopicHandler {
             self.state.push(topic.clone());
         }
         self.topic_history.add_new_node(self.state.clone());
-        self.has_changed = true;
+        self.is_modified = true;
         CommandResult::Success
     }
 
@@ -109,7 +109,7 @@ impl TopicHandler {
             }
             self.state.remove(*index);
             self.topic_history.add_new_node(self.state.clone());
-            self.has_changed = true;
+            self.is_modified = true;
             CommandResult::Success
         } else {
             CommandResult::Fail("No topic has been chosen".to_string())
@@ -120,7 +120,7 @@ impl TopicHandler {
         if let Some(state) = self.topic_history.get_previous() {
             self.state.clone_from(state);
             self.topic_history.move_to_previous();
-            self.has_changed = true;
+            self.is_modified = true;
             CommandResult::Success
         } else {
             CommandResult::Fail("Already at the oldest change".to_string())
@@ -131,7 +131,7 @@ impl TopicHandler {
         if let Some(state) = self.topic_history.get_next() {
             self.state.clone_from(state);
             self.topic_history.move_to_next();
-            self.has_changed = true;
+            self.is_modified = true;
             CommandResult::Success
         } else {
             CommandResult::Fail("Already at the newest change".to_string())

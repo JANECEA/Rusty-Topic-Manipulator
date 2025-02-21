@@ -3,10 +3,11 @@ use crate::{
         commands::{ArgCommand, CommandResult, StrEnum},
         Controller,
     },
-    models::{model::Model, TopicWriter},
+    models::model::Model,
     settings::{BannerColor, Settings},
     views::{parsed_command::ParsedCommand, View},
 };
+use anyhow::Result;
 
 pub struct ArgController {
     model: Model,
@@ -22,12 +23,14 @@ impl Controller for ArgController {
         }
     }
 
-    fn close(&mut self) -> anyhow::Result<()> {
+    fn close(&mut self) -> Result<()> {
+        if !self.model.topic_handler.is_modified() {
+            return Ok(());
+        }
         self.model
             .topic_writer
             .write(self.model.topic_handler.get_topics())?;
-        self.model.topic_writer.close()?;
-        Ok(())
+        self.model.topic_writer.close()
     }
 }
 

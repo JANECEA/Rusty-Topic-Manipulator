@@ -24,9 +24,11 @@ impl TopicHandler {
         }
     }
 
-    pub fn is_modified(&mut self) -> bool {
+    pub fn is_modified(&mut self, update: bool) -> bool {
         let changed = self.is_modified;
-        self.is_modified = false;
+        if update {
+            self.is_modified = false;
+        }
         changed
     }
 

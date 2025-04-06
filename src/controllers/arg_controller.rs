@@ -24,7 +24,7 @@ impl Controller for ArgController {
     }
 
     fn close(&mut self) -> Result<()> {
-        if !self.model.topic_handler.is_modified() {
+        if !self.model.topic_handler.is_modified(true) {
             return Ok(());
         }
         self.model

@@ -29,12 +29,13 @@ impl Controller for RuntimeController {
                     self.model.topic_writer.get_banner_color(),
                 );
             }
-            if self.model.topic_handler.is_modified() {
-                self.las_write_succeeded = self
+            if self.model.topic_handler.is_modified(true) {
+                let result = self
                     .model
                     .topic_writer
-                    .write(self.model.topic_handler.get_topics())
-                    .is_ok();
+                    .write(self.model.topic_handler.get_topics());
+
+                self.las_write_succeeded = result.is_ok();
             }
             let Some(command) = self.view.get_input() else {
                 break;
@@ -53,7 +54,7 @@ impl Controller for RuntimeController {
     }
 
     fn close(&mut self) -> anyhow::Result<()> {
-        if self.las_write_succeeded && !self.model.topic_handler.is_modified() {
+        if self.las_write_succeeded && !self.model.topic_handler.is_modified(true) {
             return Ok(());
         }
         self.model
@@ -170,6 +171,6 @@ impl RuntimeController {
     fn should_rerender(&mut self) -> bool {
         let old = self.should_rerender;
         self.should_rerender = false;
-        old || self.model.topic_handler.is_modified()
+        old || self.model.topic_handler.is_modified(false)
     }
 }
